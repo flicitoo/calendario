@@ -146,7 +146,19 @@
             box-shadow: var(--sombra-profunda);
             width: 440px;
             flex-shrink: 0;
-            margin: 0 auto; /* Centrar los contenedores de juego */
+            margin: 0 auto;
+        }
+        
+        .back-btn {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 15px;
         }
 
         /* SNAKE STYLES */
@@ -170,6 +182,31 @@
             display: none;
             text-shadow: 3px 3px 0 #000;
         }
+        
+        .snake-mobile-controls {
+            display: none;
+            grid-template-areas: ". up ." "left . right" ". down .";
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .snake-mobile-controls button {
+            background: var(--snake-color);
+            color: var(--snake-bg);
+            border: none;
+            border-radius: 50%;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--sombra-suave);
+        }
+        .snake-mobile-controls button.up { grid-area: up; }
+        .snake-mobile-controls button.down { grid-area: down; }
+        .snake-mobile-controls button.left { grid-area: left; }
+        .snake-mobile-controls button.right { grid-area: right; }
 
         /* TETRIS STYLES */
         #tetris-game-container {
@@ -285,6 +322,7 @@
             .tetris-game-over-text { font-size: 2rem; }
             .tetris-mobile-controls { display: flex; flex-direction: column; } 
             .tetris-mobile-controls button { padding: 12px; font-size: 1.2rem; }
+            .snake-mobile-controls { display: grid; }
         }
     </style>
 </head>
@@ -309,14 +347,22 @@
         </div>
 
         <div id="snake-game-container" class="game-container">
+            <button class="back-btn">Volver al Planificador</button>
             <div class="game-info">Puntaje: <span id="snake-score">0</span></div>
             <div style="position:relative;">
                 <canvas id="snake-game-board" width="400" height="400"></canvas>
                 <div class="game-over" id="snake-gameOverText">GAME OVER</div>
             </div>
+            <div class="snake-mobile-controls">
+                <button class="up" id="snake-up-btn">▲</button>
+                <button class="left" id="snake-left-btn">◀</button>
+                <button class="right" id="snake-right-btn">▶</button>
+                <button class="down" id="snake-down-btn">▼</button>
+            </div>
         </div>
 
         <div id="tetris-game-container" class="game-container">
+            <button class="back-btn">Volver al Planificador</button>
             <div class="tetris-info">
                 <div>SCORE: <span id="tetris-score">0</span></div>
                 <div>LEVEL: <span id="tetris-level">1</span></div>
@@ -384,6 +430,8 @@
         const showSnakeBtn = document.getElementById('show-snake-btn');
         const showTetrisBtn = document.getElementById('show-tetris-btn');
 
+        const backButtons = document.querySelectorAll('.back-btn');
+
         let currentGame = 'planner'; 
 
         const showView = (view) => {
@@ -413,22 +461,12 @@
             currentGame = view;
         };
         
-        // Corregido: Mostrar el juego cuando se haga clic en el botón
         showSnakeBtn.addEventListener('click', () => showView('snake'));
         showTetrisBtn.addEventListener('click', () => showView('tetris'));
 
-        // Añadido: Botones para volver al planificador
-        const backToPlannerBtnSnake = document.createElement('button');
-        backToPlannerBtnSnake.textContent = 'Volver al Planificador';
-        backToPlannerBtnSnake.classList.add('back-btn');
-        backToPlannerBtnSnake.addEventListener('click', () => showView('planner'));
-        snakeGameContainer.prepend(backToPlannerBtnSnake);
-
-        const backToPlannerBtnTetris = document.createElement('button');
-        backToPlannerBtnTetris.textContent = 'Volver al Planificador';
-        backToPlannerBtnTetris.classList.add('back-btn');
-        backToPlannerBtnTetris.addEventListener('click', () => showView('planner'));
-        tetrisGameContainer.prepend(backToPlannerBtnTetris);
+        backButtons.forEach(btn => {
+            btn.addEventListener('click', () => showView('planner'));
+        });
 
         // --- LÓGICA DEL PLANIFICADOR ---
         const calendarioGrid = document.querySelector('.calendario-grid');
@@ -576,6 +614,11 @@
         const snakeScoreDisplay = document.getElementById('snake-score');
         const snakeGameOverText = document.getElementById('snake-gameOverText');
         
+        const snakeUpBtn = document.getElementById('snake-up-btn');
+        const snakeDownBtn = document.getElementById('snake-down-btn');
+        const snakeLeftBtn = document.getElementById('snake-left-btn');
+        const snakeRightBtn = document.getElementById('snake-right-btn');
+        
         const snakeGridSize = 20;
         let snake = [{ x: 10, y: 10 }];
         let snakeApple = {};
@@ -640,7 +683,7 @@
             dibujarSnake();
         };
         
-        const cambiarSnakeDireccion = (e) => {
+        const cambiarSnakeDireccion = (direccion) => {
             if (isSnakeGameOver) return;
 
             const ARRIBA = snakeDy === -1;
@@ -648,10 +691,10 @@
             const DERECHA = snakeDx === 1;
             const IZQUIERDA = snakeDx === -1;
 
-            if ((e.key === "ArrowUp" || e.key === "w") && !ABAJO) { snakeDx = 0; snakeDy = -1; }
-            if ((e.key === "ArrowDown" || e.key === "s") && !ARRIBA) { snakeDx = 0; snakeDy = 1; }
-            if ((e.key === "ArrowLeft" || e.key === "a") && !DERECHA) { snakeDx = -1; snakeDy = 0; }
-            if ((e.key === "ArrowRight" || e.key === "d") && !IZQUIERDA) { snakeDx = 1; snakeDy = 0; }
+            if ((direccion === "up" || direccion === "w") && !ABAJO) { snakeDx = 0; snakeDy = -1; }
+            if ((direccion === "down" || direccion === "s") && !ARRIBA) { snakeDx = 0; snakeDy = 1; }
+            if ((direccion === "left" || direccion === "a") && !DERECHA) { snakeDx = -1; snakeDy = 0; }
+            if ((direccion === "right" || direccion === "d") && !IZQUIERDA) { snakeDx = 1; snakeDy = 0; }
         };
 
         const iniciarSnakeGame = () => {
@@ -666,7 +709,18 @@
             snakeGameLoop = setInterval(mainSnakeLoop, 200); 
         };
 
-        document.addEventListener('keydown', cambiarSnakeDireccion);
+        document.addEventListener('keydown', e => {
+            const key = e.key;
+            if (key === 'ArrowUp' || key === 'w') cambiarSnakeDireccion('up');
+            if (key === 'ArrowDown' || key === 's') cambiarSnakeDireccion('down');
+            if (key === 'ArrowLeft' || key === 'a') cambiarSnakeDireccion('left');
+            if (key === 'ArrowRight' || key === 'd') cambiarSnakeDireccion('right');
+        });
+
+        snakeUpBtn.addEventListener('click', () => cambiarSnakeDireccion('up'));
+        snakeDownBtn.addEventListener('click', () => cambiarSnakeDireccion('down'));
+        snakeLeftBtn.addEventListener('click', () => cambiarSnakeDireccion('left'));
+        snakeRightBtn.addEventListener('click', () => cambiarSnakeDireccion('right'));
 
 
         // --- LÓGICA DEL JUEGO DE TETRIS ---
