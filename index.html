@@ -267,38 +267,10 @@
             text-shadow: 3px 3px 0 #000;
         }
         
+        /* Ocultar botones de control en dispositivos móviles */
         .snake-mobile-controls {
             display: none;
-            grid-template-areas: ". up ." "left . right" ". down .";
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            width: 100%;
-            max-width: 300px;
-            margin-top: 20px;
         }
-
-        .snake-mobile-controls button {
-            background: var(--snake-color);
-            color: var(--color-background);
-            border: none;
-            border-radius: 50%;
-            padding: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: var(--sombra-suave);
-            transition: all 0.2s ease;
-            -webkit-tap-highlight-color: transparent;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-        .snake-mobile-controls button:active {
-            transform: scale(0.9);
-            filter: brightness(0.8);
-        }
-        .snake-mobile-controls button.up { grid-area: up; }
-        .snake-mobile-controls button.down { grid-area: down; }
-        .snake-mobile-controls button.left { grid-area: left; }
-        .snake-mobile-controls button.right { grid-area: right; }
 
         /* TETRIS STYLES */
         #tetris-game-container {
@@ -504,7 +476,6 @@
             .tetris-game-over-text { font-size: 2rem; }
             .tetris-mobile-controls { display: flex; flex-direction: column; } 
             .tetris-mobile-controls button { padding: 12px; font-size: 1.2rem; }
-            .snake-mobile-controls { display: grid; } /* Mostrar controles móviles de snake */
             #snake-game-board {
                 width: 300px;
                 height: 300px;
@@ -539,13 +510,7 @@
                 <canvas id="snake-game-board" width="400" height="400"></canvas>
                 <div class="game-over" id="snake-gameOverText">GAME OVER</div>
             </div>
-            <div class="snake-mobile-controls">
-                <button class="up" id="snake-up-btn">▲</button>
-                <button class="left" id="snake-left-btn">◀</button>
-                <button class="right" id="snake-right-btn">▶</button>
-                <button class="down" id="snake-down-btn">▼</button>
             </div>
-        </div>
 
         <div id="tetris-game-container" class="game-container">
             <button class="back-btn">Volver al Planificador</button>
@@ -797,11 +762,6 @@
         const snakeScoreDisplay = document.getElementById('snake-score');
         const snakeGameOverText = document.getElementById('snake-gameOverText');
         
-        const snakeUpBtn = document.getElementById('snake-up-btn');
-        const snakeDownBtn = document.getElementById('snake-down-btn');
-        const snakeLeftBtn = document.getElementById('snake-left-btn');
-        const snakeRightBtn = document.getElementById('snake-right-btn');
-        
         const snakeGridSize = 20;
         let snake = [{ x: 10, y: 10, angle: 0 }]; 
         let snakeApples = [];
@@ -840,13 +800,11 @@
             const dy = touchEndY - touchStartY;
 
             if (Math.abs(dx) > Math.abs(dy)) {
-                // Deslizamiento horizontal
                 if (Math.abs(dx) > SWIPE_THRESHOLD) {
                     if (dx > 0) cambiarSnakeDireccion('right');
                     else cambiarSnakeDireccion('left');
                 }
             } else {
-                // Deslizamiento vertical
                 if (Math.abs(dy) > SWIPE_THRESHOLD) {
                     if (dy > 0) cambiarSnakeDireccion('down');
                     else cambiarSnakeDireccion('up');
@@ -1053,30 +1011,31 @@
         };
         
         let changingDirection = false; 
-
         const cambiarSnakeDireccion = (direccion) => {
-            if (isSnakeGameOver || changingDirection) return;
-            changingDirection = true; 
-            setTimeout(() => changingDirection = false, snakeTickRate);
-
+            if (isSnakeGameOver) return;
+            
+            // Lógica para evitar que la serpiente cambie de dirección hacia atrás
             const ARRIBA = snakeDy === -1;
             const ABAJO = snakeDy === 1;
             const DERECHA = snakeDx === 1;
             const IZQUIERDA = snakeDx === -1;
-
-            let newDx = snakeDx;
-            let newDy = snakeDy;
-
-            if ((direccion === "up") && !ABAJO) { newDx = 0; newDy = -1; }
-            if ((direccion === "down") && !ARRIBA) { newDx = 0; newDy = 1; }
-            if ((direccion === "left") && !DERECHA) { newDx = -1; newDy = 0; }
-            if ((direccion === "right") && !IZQUIERDA) { newDx = 1; newDy = 0; }
-            
-            if (newDx !== snakeDx || newDy !== snakeDy) {
-                snakeDx = newDx;
-                snakeDy = newDy;
+        
+            if ((direccion === "up" && !ABAJO) ||
+                (direccion === "down" && !ARRIBA) ||
+                (direccion === "left" && !DERECHA) ||
+                (direccion === "right" && !IZQUIERDA)) {
+                
+                // Actualizar dirección inmediatamente sin delay
+                if (direccion === "up") { snakeDx = 0; snakeDy = -1; }
+                if (direccion === "down") { snakeDx = 0; snakeDy = 1; }
+                if (direccion === "left") { snakeDx = -1; snakeDy = 0; }
+                if (direccion === "right") { snakeDx = 1; snakeDy = 0; }
+                
+                // El flag `changingDirection` no es necesario con el nuevo control.
+                // Simplemente permitimos el cambio si no es la dirección opuesta.
             }
         };
+
 
         const iniciarSnakeGame = () => {
             if (window.innerWidth <= 600) {
@@ -1111,12 +1070,6 @@
             if (key === 'ArrowLeft' || key === 'a') cambiarSnakeDireccion('left');
             if (key === 'ArrowRight' || key === 'd') cambiarSnakeDireccion('right');
         });
-
-        snakeUpBtn.addEventListener('click', () => cambiarSnakeDireccion('up'));
-        snakeDownBtn.addEventListener('click', () => cambiarSnakeDireccion('down'));
-        snakeLeftBtn.addEventListener('click', () => cambiarSnakeDireccion('left'));
-        snakeRightBtn.addEventListener('click', () => cambiarSnakeDireccion('right'));
-
 
         // --- LÓGICA DEL JUEGO DE TETRIS ---
         const tetrisCanvas = document.getElementById('tetris-canvas');
