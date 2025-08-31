@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador Interactivo + Juegos</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        :root {
+            --color-primario: #6a11cb;
+            --color-secundario: #2575fc;
+            --color-acento: #ff6f61;
+            --color-fondo: #f0f2f5;
+            --color-texto: #333;
+            --sombra-suave: 0 8px 25px rgba(0, 0, 0, 0.1);
+            --sombra-profunda: 0 12px 35px rgba(0, 0, 0, 0.2);
+            --borde-radio: 15px;
+            /* Colores para Snake */
+            --snake-bg: #8ECC39;
+            --snake-color: #3A5123;
+            --apple-color: #E74C3C;
+            /* Colores para Tetris */
+            --tetris-bg: #1a1a1a;
+            --tetris-border: #444;
+            --tetris-text: #eee;
+            --tetris-score-bg: #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-fondo);
+            color: var(--color-texto);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .planner-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .calendario-container {
+            width: 100%;
+            background: white;
+            border-radius: var(--borde-radio);
+            box-shadow: var(--sombra-profunda);
+            overflow: hidden;
+        }
+        
+        .calendario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, var(--color-primario), var(--color-secundario));
+            color: white;
+        }
+        
+        .calendario-header h1 { font-size: 1.5rem; }
+
+        .calendario-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #e0e0e0;
+        }
+
+        .dia-semana, .dia-mes { display: flex; background-color: white; }
+        .dia-semana { justify-content: center; align-items: center; padding: 10px 5px; font-size: 0.8rem; font-weight: 600; }
+        .dia-mes { min-height: 80px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; flex-direction: column; justify-content: space-between; padding: 5px; }
+        .dia-mes:not(.otro-mes):hover { transform: translateY(-3px) scale(1.02); z-index: 10; }
+        .dia-mes.otro-mes { color: #ccc; background-color: #f7f7f7; cursor: default; }
+        .numero-dia { font-size: 0.9rem; align-self: flex-end; }
+        .plan-preview { position: absolute; top:0; left:0; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -1; filter: brightness(0.7); }
+        .dia-mes.con-plan .numero-dia { color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.5); font-weight: bold; }
+
+        /* --- CONTROLES Y JUEGO --- */
+        .game-selection-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            width: 100%;
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+        .game-selection-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap; 
+        }
+
+        .game-selection-buttons button {
+            font-family: 'Press Start 2P', cursive;
+            background: #2b2b2b;
+            color: #7aff23;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--sombra-suave);
+            flex: 1 1 auto; 
+            min-width: 150px;
+        }
+
+        .game-selection-buttons button.snake-btn {
+            background: var(--snake-color);
+            color: var(--snake-bg);
+        }
+
+        .game-selection-buttons button:hover { 
+            transform: translateY(-3px); 
+            box-shadow: var(--sombra-profunda); 
+        }
+        
+        /* Contenedores de juegos individuales */
+        .game-container {
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--borde-radio);
+            box-shadow: var(--sombra-profunda);
+            width: 440px;
+            flex-shrink: 0;
+            margin: 0 auto; /* Centrar los contenedores de juego */
+        }
+
+        /* SNAKE STYLES */
+        #snake-game-board {
+            border: 5px solid var(--snake-color);
+            background-color: var(--snake-bg);
+        }
+
+        .game-info {
+            font-family: 'Press Start 2P', cursive;
+            color: var(--snake-color);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        .game-over {
+            position: absolute;
+            color: var(--apple-color);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2rem;
+            text-align: center;
+            display: none;
+            text-shadow: 3px 3px 0 #000;
+        }
+
+        /* TETRIS STYLES */
+        #tetris-game-container {
+            background: var(--tetris-bg);
+            border: 5px solid var(--tetris-border);
+            color: var(--tetris-text);
+            font-family: 'Press Start 2P', cursive;
+            position: relative;
+        }
+        #tetris-canvas {
+            background: #000;
+            border: 2px solid var(--tetris-border);
+            display: block; 
+            margin: 0 auto;
+        }
+        .tetris-info {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .tetris-info div {
+            padding: 8px 12px;
+            background: var(--tetris-score-bg);
+            border-radius: 8px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+        .tetris-game-over-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            color: #f00;
+            text-shadow: 4px 4px 0 #000;
+            display: none;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .tetris-mobile-controls {
+            display: none; 
+            width: 100%;
+            margin-top: 15px;
+            gap: 10px;
+            justify-content: center;
+        }
+        .tetris-mobile-controls button {
+            background: rgba(var(--color-primario), 0.8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--sombra-suave);
+            transition: background 0.2s ease, transform 0.2s ease;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .tetris-mobile-controls button:active {
+            transform: scale(0.95);
+        }
+        .tetris-control-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+
+        /* --- MODALES --- */
+        .modal-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.4s ease; z-index: 1000; }
+        .modal-background.visible { opacity: 1; visibility: visible; }
+        .modal-content { background: white; border-radius: var(--borde-radio); box-shadow: var(--sombra-profunda); width: 90%; max-width: 500px; transform: scale(0.9); transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .modal-background.visible .modal-content { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; border-bottom: 1px solid #eee; }
+        .modal-header h2 { font-size: 1.2rem; }
+        .modal-close { background: transparent; border: none; font-size: 1.8rem; cursor: pointer; transition: transform 0.3s ease; }
+        .modal-close:hover { transform: rotate(90deg); }
+        
+        /* Modal Edición */
+        #editModal .modal-body { padding: 25px; }
+        .file-upload-wrapper { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: background-color 0.3s; margin-bottom: 15px; }
+        .file-upload-wrapper:hover { background-color: #f9f9f9; }
+        #imageUpload { display: none; }
+        #imagePreview { max-width: 100%; max-height: 150px; border-radius: 5px; margin-top: 15px; }
+        #planText { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; min-height: 100px; }
+        
+        /* Modal Visualización */
+        #viewModal .modal-content { max-width: 600px; padding: 0; overflow: hidden; }
+        .view-image { width: 100%; height: 250px; background-size: cover; background-position: center; }
+        .view-text { padding: 25px; white-space: pre-wrap; }
+
+        .modal-footer { display: flex; justify-content: space-between; gap: 15px; padding: 15px 25px; background-color: #f9f9f9; border-top: 1px solid #eee; }
+        .modal-footer button { flex-grow: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        #guardarPlan { background: var(--color-acento); color: white; }
+        #borrarPlan { background: #555; color: white; }
+        #editarPlan { background: var(--color-secundario); color: white; width: 100%; }
+
+        /* --- RESPONSIVE DESIGN --- */
+        @media (max-width: 900px) {
+            .main-wrapper { flex-direction: column; }
+            .game-container { width: 100%; }
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .calendario-header { padding: 15px; }
+            .calendario-header h1 { font-size: 1.2rem; }
+            .dia-mes { min-height: 60px; font-size: 0.8rem; }
+            .dia-semana { font-size: 0.7rem; }
+            .game-selection-buttons button { padding: 10px 15px; font-size: 0.9rem; min-width: unset; }
+            .tetris-game-over-text { font-size: 2rem; }
+            .tetris-mobile-controls { display: flex; flex-direction: column; } 
+            .tetris-mobile-controls button { padding: 12px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="planner-wrapper">
+            <div class="game-selection-wrapper">
+                <div class="game-selection-buttons">
+                    <button id="show-snake-btn" class="snake-btn">Jugar Snake</button>
+                    <button id="show-tetris-btn" class="tetris-btn">Jugar Tetris</button>
+                </div>
+            </div>
+
+            <div class="calendario-container">
+                <div class="calendario-header">
+                    <h1>Agosto 2025</h1>
+                </div>
+                <div class="calendario-grid">
+                </div>
+            </div>
+        </div>
+
+        <div id="snake-game-container" class="game-container">
+            <div class="game-info">Puntaje: <span id="snake-score">0</span></div>
+            <div style="position:relative;">
+                <canvas id="snake-game-board" width="400" height="400"></canvas>
+                <div class="game-over" id="snake-gameOverText">GAME OVER</div>
+            </div>
+        </div>
+
+        <div id="tetris-game-container" class="game-container">
+            <div class="tetris-info">
+                <div>SCORE: <span id="tetris-score">0</span></div>
+                <div>LEVEL: <span id="tetris-level">1</span></div>
+                <div>NEXT: <canvas id="tetris-next-piece-canvas" width="80" height="80"></canvas></div>
+            </div>
+            <canvas id="tetris-canvas" width="200" height="400"></canvas>
+            <div class="tetris-game-over-text" id="tetris-gameOverText">GAME OVER<br>Presiona "R" para reiniciar</div>
+            
+            <div class="tetris-mobile-controls">
+                <div class="tetris-control-row">
+                    <button id="tetris-rotate-left">⤺</button>
+                    <button id="tetris-rotate-right">⤻</button>
+                </div>
+                <div class="tetris-control-row">
+                    <button id="tetris-move-left">◀</button>
+                    <button id="tetris-soft-drop">▼</button>
+                    <button id="tetris-move-right">▶</button>
+                </div>
+                <div class="tetris-control-row">
+                    <button id="tetris-hard-drop">⬇</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-background" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="editModalTitle"></h2><button class="modal-close">&times;</button></div>
+            <form id="planForm">
+                <div class="modal-body">
+                    <label for="imageUpload" class="file-upload-wrapper">
+                        <span>Haz clic para subir una imagen</span>
+                        <input type="file" id="imageUpload" accept="image/*">
+                        <img id="imagePreview" src="" alt="Vista previa de imagen" style="display:none;">
+                    </label>
+                    <textarea id="planText" placeholder="Describe tu plan..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="borrarPlan">Borrar</button>
+                    <button type="submit" id="guardarPlan">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="modal-background" id="viewModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="viewModalTitle"></h2><button class="modal-close">&times;</button></div>
+            <div class="modal-body">
+                <div class="view-image" id="viewImage"></div>
+                <div class="view-text" id="viewText"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="editarPlan">Editar Plan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- GESTIÓN DE VISTAS (PLANIFICADOR, SNAKE, TETRIS) ---
+        const plannerContainer = document.querySelector('.calendario-container');
+        const snakeGameContainer = document.getElementById('snake-game-container');
+        const tetrisGameContainer = document.getElementById('tetris-game-container');
+        
+        const showSnakeBtn = document.getElementById('show-snake-btn');
+        const showTetrisBtn = document.getElementById('show-tetris-btn');
+
+        let currentGame = 'planner'; 
+
+        const showView = (view) => {
+            plannerContainer.style.display = 'none';
+            snakeGameContainer.style.display = 'none';
+            tetrisGameContainer.style.display = 'none';
+            
+            clearInterval(snakeGameLoop); 
+            clearInterval(tetrisGameLoop); 
+
+            if (view === 'planner') {
+                plannerContainer.style.display = 'block';
+                document.querySelector('.planner-wrapper').style.display = 'flex';
+                document.querySelector('.game-selection-wrapper').style.display = 'flex';
+                document.getElementById('snake-game-container').style.display = 'none';
+                document.getElementById('tetris-game-container').style.display = 'none';
+
+            } else if (view === 'snake') {
+                document.querySelector('.planner-wrapper').style.display = 'none';
+                snakeGameContainer.style.display = 'flex';
+                iniciarSnakeGame();
+            } else if (view === 'tetris') {
+                document.querySelector('.planner-wrapper').style.display = 'none';
+                tetrisGameContainer.style.display = 'flex';
+                iniciarTetrisGame();
+            }
+            currentGame = view;
+        };
+        
+        // Corregido: Mostrar el juego cuando se haga clic en el botón
+        showSnakeBtn.addEventListener('click', () => showView('snake'));
+        showTetrisBtn.addEventListener('click', () => showView('tetris'));
+
+        // Añadido: Botones para volver al planificador
+        const backToPlannerBtnSnake = document.createElement('button');
+        backToPlannerBtnSnake.textContent = 'Volver al Planificador';
+        backToPlannerBtnSnake.classList.add('back-btn');
+        backToPlannerBtnSnake.addEventListener('click', () => showView('planner'));
+        snakeGameContainer.prepend(backToPlannerBtnSnake);
+
+        const backToPlannerBtnTetris = document.createElement('button');
+        backToPlannerBtnTetris.textContent = 'Volver al Planificador';
+        backToPlannerBtnTetris.classList.add('back-btn');
+        backToPlannerBtnTetris.addEventListener('click', () => showView('planner'));
+        tetrisGameContainer.prepend(backToPlannerBtnTetris);
+
+        // --- LÓGICA DEL PLANIFICADOR ---
+        const calendarioGrid = document.querySelector('.calendario-grid');
+        const editModal = document.getElementById('editModal');
+        const viewModal = document.getElementById('viewModal');
+        const planForm = document.getElementById('planForm');
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const borrarPlanBtn = document.getElementById('borrarPlan');
+        
+        let diaSeleccionado = null;
+        let imagenBase64 = null;
+        const mesAnioActual = 'agosto-2025';
+
+        const generarCalendario = () => {
+            const diasSemanas = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            diasSemanas.forEach(d => calendarioGrid.innerHTML += `<div class="dia-semana">${d}</div>`);
+            
+            const diasMesAnterior = 5; 
+            const diasEnMes = 31;
+            
+            for(let i=0; i<diasMesAnterior; i++) calendarioGrid.innerHTML += `<div class="dia-mes otro-mes"></div>`;
+            for(let i=1; i<=diasEnMes; i++) calendarioGrid.innerHTML += `<div class="dia-mes" data-dia="${i}"><span class="numero-dia">${i}</span></div>`;
+        };
+
+        const cargarPlanes = () => {
+            document.querySelectorAll('.dia-mes:not(.otro-mes)').forEach(dia => {
+                const numeroDia = dia.dataset.dia;
+                const clave = `plan-${mesAnioActual}-${numeroDia}`;
+                const planGuardado = JSON.parse(localStorage.getItem(clave));
+
+                const previewExistente = dia.querySelector('.plan-preview');
+                if (previewExistente) previewExistente.remove();
+                dia.classList.remove('con-plan');
+
+                if (planGuardado && planGuardado.imagen) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.classList.add('plan-preview');
+                    previewDiv.style.backgroundImage = `url('${planGuardado.imagen}')`;
+                    dia.appendChild(previewDiv);
+                    dia.classList.add('con-plan');
+                }
+            });
+        };
+        
+        const abrirModalEdicion = () => {
+            const numeroDia = diaSeleccionado.dataset.dia;
+            document.getElementById('editModalTitle').textContent = `Plan para el día ${numeroDia}`;
+            const clave = `plan-${mesAnioActual}-${numeroDia}`;
+            const planGuardado = JSON.parse(localStorage.getItem(clave));
+
+            planForm.reset();
+            imagePreview.style.display = 'none';
+            imagenBase64 = null;
+
+            if (planGuardado) {
+                document.getElementById('planText').value = planGuardado.texto || '';
+                if(planGuardado.imagen){
+                    imagePreview.src = planGuardado.imagen;
+                    imagePreview.style.display = 'block';
+                    imagenBase64 = planGuardado.imagen;
+                }
+            }
+            editModal.classList.add('visible');
+        };
+        
+        const abrirModalVisualizacion = (plan) => {
+            const numeroDia = diaSeleccionado.dataset.dia;
+            document.getElementById('viewModalTitle').textContent = `Plan del día ${numeroDia}`;
+            document.getElementById('viewImage').style.backgroundImage = plan.imagen ? `url('${plan.imagen}')` : 'none';
+            document.getElementById('viewText').textContent = plan.texto;
+            viewModal.classList.add('visible');
+        };
+
+        imageUpload.addEventListener('change', event => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    imagenBase64 = e.target.result;
+                    imagePreview.src = imagenBase64;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        planForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const clave = `plan-${mesAnioActual}-${diaSeleccionado.dataset.dia}`;
+            const plan = {
+                imagen: imagenBase64,
+                texto: document.getElementById('planText').value
+            };
+            if (!plan.imagen && !plan.texto) {
+                localStorage.removeItem(clave);
+            } else {
+                localStorage.setItem(clave, JSON.stringify(plan));
+            }
+            cargarPlanes();
+            cerrarModales();
+        });
+
+        borrarPlanBtn.addEventListener('click', () => {
+            const clave = `plan-${mesAnioActual}-${diaSeleccionado.dataset.dia}`;
+            localStorage.removeItem(clave);
+            cargarPlanes();
+            cerrarModales();
+        });
+
+        document.getElementById('editarPlan').addEventListener('click', () => {
+            viewModal.classList.remove('visible');
+            abrirModalEdicion();
+        });
+
+        const cerrarModales = () => {
+            document.querySelectorAll('.modal-background').forEach(modal => modal.classList.remove('visible'));
+        };
+
+        generarCalendario();
+        document.querySelectorAll('.dia-mes:not(.otro-mes)').forEach(dia => {
+            dia.addEventListener('click', () => {
+                diaSeleccionado = dia;
+                const clave = `plan-${mesAnioActual}-${dia.dataset.dia}`;
+                const planGuardado = JSON.parse(localStorage.getItem(clave));
+                if (planGuardado && (planGuardado.imagen || planGuardado.texto)) {
+                    abrirModalVisualizacion(planGuardado);
+                } else {
+                    abrirModalEdicion();
+                }
+            });
+        });
+
+        document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', cerrarModales));
+        document.querySelectorAll('.modal-background').forEach(modal => {
+            modal.addEventListener('click', e => { if (e.target === modal) cerrarModales(); });
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModales(); });
+        
+        cargarPlanes();
+
+        // --- LÓGICA DEL JUEGO DE SNAKE ---
+        const snakeBoard = document.getElementById('snake-game-board');
+        const snakeCtx = snakeBoard.getContext('2d');
+        const snakeScoreDisplay = document.getElementById('snake-score');
+        const snakeGameOverText = document.getElementById('snake-gameOverText');
+        
+        const snakeGridSize = 20;
+        let snake = [{ x: 10, y: 10 }];
+        let snakeApple = {};
+        let snakeDx = 0, snakeDy = 0;
+        let snakeScore = 0;
+        let isSnakeGameOver = false;
+        let snakeGameLoop;
+        
+        const generarSnakeManzana = () => {
+            snakeApple = {
+                x: Math.floor(Math.random() * (snakeBoard.width / snakeGridSize)),
+                y: Math.floor(Math.random() * (snakeBoard.height / snakeGridSize))
+            };
+        };
+        
+        const dibujarSnake = () => {
+            snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-bg');
+            snakeCtx.fillRect(0, 0, snakeBoard.width, snakeBoard.height);
+            
+            snake.forEach(part => {
+                snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
+                snakeCtx.fillRect(part.x * snakeGridSize, part.y * snakeGridSize, snakeGridSize - 2, snakeGridSize - 2);
+            });
+            
+            snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple-color');
+            snakeCtx.fillRect(snakeApple.x * snakeGridSize, snakeApple.y * snakeGridSize, snakeGridSize, snakeGridSize);
+        };
+
+        const moverSnakeSerpiente = () => {
+            if (isSnakeGameOver) return;
+            const cabeza = { x: snake[0].x + snakeDx, y: snake[0].y + snakeDy };
+            snake.unshift(cabeza);
+
+            if (cabeza.x === snakeApple.x && cabeza.y === snakeApple.y) {
+                snakeScore++;
+                snakeScoreDisplay.textContent = snakeScore;
+                generarSnakeManzana();
+            } else {
+                snake.pop();
+            }
+        };
+
+        const chequearSnakeColision = () => {
+            const cabeza = snake[0];
+            if (cabeza.x < 0 || cabeza.x >= snakeBoard.width / snakeGridSize || cabeza.y < 0 || cabeza.y >= snakeBoard.height / snakeGridSize) {
+                return true;
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (cabeza.x === snake[i].x && cabeza.y === snake[i].y) return true;
+            }
+            return false;
+        };
+
+        const mainSnakeLoop = () => {
+            if (chequearSnakeColision()) {
+                isSnakeGameOver = true;
+                snakeGameOverText.style.display = 'block';
+                clearInterval(snakeGameLoop);
+                return;
+            }
+            moverSnakeSerpiente();
+            dibujarSnake();
+        };
+        
+        const cambiarSnakeDireccion = (e) => {
+            if (isSnakeGameOver) return;
+
+            const ARRIBA = snakeDy === -1;
+            const ABAJO = snakeDy === 1;
+            const DERECHA = snakeDx === 1;
+            const IZQUIERDA = snakeDx === -1;
+
+            if ((e.key === "ArrowUp" || e.key === "w") && !ABAJO) { snakeDx = 0; snakeDy = -1; }
+            if ((e.key === "ArrowDown" || e.key === "s") && !ARRIBA) { snakeDx = 0; snakeDy = 1; }
+            if ((e.key === "ArrowLeft" || e.key === "a") && !DERECHA) { snakeDx = -1; snakeDy = 0; }
+            if ((e.key === "ArrowRight" || e.key === "d") && !IZQUIERDA) { snakeDx = 1; snakeDy = 0; }
+        };
+
+        const iniciarSnakeGame = () => {
+            snake = [{ x: 10, y: 10 }];
+            snakeDx = 0; snakeDy = 0;
+            snakeScore = 0;
+            snakeScoreDisplay.textContent = snakeScore;
+            isSnakeGameOver = false;
+            snakeGameOverText.style.display = 'none';
+            generarSnakeManzana();
+            clearInterval(snakeGameLoop);
+            snakeGameLoop = setInterval(mainSnakeLoop, 200); 
+        };
+
+        document.addEventListener('keydown', cambiarSnakeDireccion);
+
+
+        // --- LÓGICA DEL JUEGO DE TETRIS ---
+        const tetrisCanvas = document.getElementById('tetris-canvas');
+        const tetrisCtx = tetrisCanvas.getContext('2d');
+        const tetrisNextPieceCanvas = document.getElementById('tetris-next-piece-canvas');
+        const tetrisNextCtx = tetrisNextPieceCanvas.getContext('2d');
+        const tetrisScoreDisplay = document.getElementById('tetris-score');
+        const tetrisLevelDisplay = document.getElementById('tetris-level');
+        const tetrisGameOverText = document.getElementById('tetris-gameOverText');
+
+        document.getElementById('tetris-rotate-left').addEventListener('click', () => { if (!isTetrisGameOver) tetrisRotatePiece(-1); });
+        document.getElementById('tetris-rotate-right').addEventListener('click', () => { if (!isTetrisGameOver) tetrisRotatePiece(1); });
+        document.getElementById('tetris-move-left').addEventListener('click', () => { if (!isTetrisGameOver) tetrisMovePiece(-1, 0); });
+        document.getElementById('tetris-move-right').addEventListener('click', () => { if (!isTetrisGameOver) tetrisMovePiece(1, 0); });
+        document.getElementById('tetris-soft-drop').addEventListener('click', () => { if (!isTetrisGameOver) tetrisSoftDrop(); });
+        document.getElementById('tetris-hard-drop').addEventListener('click', () => { if (!isTetrisGameOver) tetrisHardDrop(); });
+
+
+        const TETRIS_ROWS = 20;
+        const TETRIS_COLS = 10;
+        const TETRIS_BLOCK_SIZE = tetrisCanvas.width / TETRIS_COLS; 
+        const TETRIS_COLORS = [
+            null, 
+            '#FF0D72', 
+            '#0DC2FF', 
+            '#0DFF72', 
+            '#F538FF', 
+            '#FF8E0D', 
+            '#FFE138', 
+            '#3877FF'  
+        ];
+
+        let tetrisBoard = [];
+        let tetrisCurrentPiece;
+        let tetrisNextPiece;
+        let tetrisScore = 0;
+        let tetrisLevel = 1;
+        let tetrisDropInterval = 1000; 
+        let tetrisGameLoop;
+        let isTetrisGameOver = false;
+
+        const TETROMINOS = {
+            'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], 
+            'J': [[2,0,0], [2,2,2], [0,0,0]], 
+            'L': [[0,0,3], [3,3,3], [0,0,0]], 
+            'O': [[4,4], [4,4]], 
+            'S': [[0,5,5], [5,5,0], [0,0,0]], 
+            'T': [[0,6,0], [6,6,6], [0,0,0]], 
+            'Z': [[7,7,0], [0,7,7], [0,0,0]]  
+        };
+
+        const TETROMINO_KEYS = Object.keys(TETROMINOS);
+
+        function tetrisCreateBoard() {
+            tetrisBoard = Array(TETRIS_ROWS).fill(0).map(() => Array(TETRIS_COLS).fill(0));
+        }
+
+        function tetrisGenerateRandomPiece() {
+            const randKey = TETROMINO_KEYS[Math.floor(Math.random() * TETROMINO_KEYS.length)];
+            const shape = TETROMINOS[randKey];
+            const colorIndex = TETROMINO_KEYS.indexOf(randKey) + 1;
+            return {
+                shape: shape,
+                color: colorIndex,
+                x: Math.floor(TETRIS_COLS / 2) - Math.floor(shape[0].length / 2),
+                y: 0
+            };
+        }
+
+        function tetrisDrawBlock(ctx, x, y, color) {
+            if (color === 0) return; 
+            ctx.fillStyle = TETRIS_COLORS[color];
+            ctx.fillRect(x * TETRIS_BLOCK_SIZE, y * TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE);
+            ctx.strokeStyle = '#222';
+            ctx.strokeRect(x * TETRIS_BLOCK_SIZE, y * TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE);
+        }
+
+        function tetrisDrawBoard() {
+            for (let r = 0; r < TETRIS_ROWS; r++) {
+                for (let c = 0; c < TETRIS_COLS; c++) {
+                    tetrisDrawBlock(tetrisCtx, c, r, tetrisBoard[r][c]);
+                }
+            }
+        }
+
+        function tetrisDrawPiece(ctx, piece) {
+            piece.shape.forEach((row, r) => {
+                row.forEach((value, c) => {
+                    if (value !== 0) {
+                        tetrisDrawBlock(ctx, piece.x + c, piece.y + r, piece.color);
+                    }
+                });
+            });
+        }
+
+        function tetrisDrawNextPiece() {
+            tetrisNextCtx.clearRect(0, 0, tetrisNextPieceCanvas.width, tetrisNextPieceCanvas.height);
+            tetrisNextCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tetris-score-bg');
+            tetrisNextCtx.fillRect(0,0, tetrisNextPieceCanvas.width, tetrisNextPieceCanvas.height);
+
+            const nextBlockSize = tetrisNextPieceCanvas.width / 4; 
+            const piece = tetrisNextPiece;
+            const startX = (tetrisNextPieceCanvas.width - piece.shape[0].length * nextBlockSize) / 2 / nextBlockSize;
+            const startY = (tetrisNextPieceCanvas.height - piece.shape.length * nextBlockSize) / 2 / nextBlockSize;
+
+            piece.shape.forEach((row, r) => {
+                row.forEach((value, c) => {
+                    if (value !== 0) {
+                        tetrisNextCtx.fillStyle = TETRIS_COLORS[piece.color];
+                        tetrisNextCtx.fillRect((startX + c) * nextBlockSize, (startY + r) * nextBlockSize, nextBlockSize, nextBlockSize);
+                        tetrisNextCtx.strokeStyle = '#222';
+                        tetrisNextCtx.strokeRect((startX + c) * nextBlockSize, (startY + r) * nextBlockSize, nextBlockSize, nextBlockSize);
+                    }
+                });
+            });
+        }
+
+
+        function tetrisCheckCollision(piece, offsetX, offsetY) {
+            for (let r = 0; r < piece.shape.length; r++) {
+                for (let c = 0; c < piece.shape[r].length; c++) {
+                    if (piece.shape[r][c] !== 0) {
+                        const newX = piece.x + c + offsetX;
+                        const newY = piece.y + r + offsetY;
+
+                        if (newX < 0 || newX >= TETRIS_COLS || newY >= TETRIS_ROWS) {
+                            return true; 
+                        }
+                        if (newY < 0) { 
+                            continue;
+                        }
+                        if (tetrisBoard[newY][newX] !== 0) {
+                            return true; 
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function tetrisMergePiece() {
+            tetrisCurrentPiece.shape.forEach((row, r) => {
+                row.forEach((value, c) => {
+                    if (value !== 0) {
+                        tetrisBoard[tetrisCurrentPiece.y + r][tetrisCurrentPiece.x + c] = tetrisCurrentPiece.color;
+                    }
+                });
+            });
+        }
+
+        function tetrisClearLines() {
+            let linesCleared = 0;
+            for (let r = TETRIS_ROWS - 1; r >= 0; r--) {
+                if (tetrisBoard[r].every(cell => cell !== 0)) {
+                    linesCleared++;
+                    tetrisBoard.splice(r, 1); 
+                    tetrisBoard.unshift(Array(TETRIS_COLS).fill(0)); 
+                    r++; 
+                }
+            }
+            if (linesCleared > 0) {
+                tetrisScore += [0, 100, 300, 500, 800][linesCleared]; 
+                tetrisScoreDisplay.textContent = tetrisScore;
+                
+                const newLevel = Math.floor(tetrisScore / 1000) + 1; 
+                if (newLevel > tetrisLevel) {
+                    tetrisLevel = newLevel;
+                    tetrisLevelDisplay.textContent = tetrisLevel;
+                    tetrisDropInterval = Math.max(100, tetrisDropInterval - 50); 
+                    clearInterval(tetrisGameLoop);
+                    tetrisGameLoop = setInterval(tetrisMainLoop, tetrisDropInterval);
+                }
+            }
+        }
+
+        function tetrisMovePiece(dx, dy) {
+            if (!tetrisCheckCollision(tetrisCurrentPiece, dx, dy)) {
+                tetrisCurrentPiece.x += dx;
+                tetrisCurrentPiece.y += dy;
+                tetrisDrawGame();
+                return true;
+            }
+            return false;
+        }
+
+        function tetrisRotatePiece(direction) { 
+            const originalShape = tetrisCurrentPiece.shape;
+            const rotatedShape = Array(originalShape[0].length).fill(0).map(() => Array(originalShape.length).fill(0));
+            
+            if (direction === 1) { 
+                for (let r = 0; r < originalShape.length; r++) {
+                    for (let c = 0; c < originalShape[r].length; c++) {
+                        rotatedShape[c][originalShape.length - 1 - r] = originalShape[r][c];
+                    }
+                }
+            } else { 
+                 for (let r = 0; r < originalShape.length; r++) {
+                    for (let c = 0; c < originalShape[r].length; c++) {
+                        rotatedShape[originalShape[r].length - 1 - c][r] = originalShape[r][c];
+                    }
+                }
+            }
+
+            const originalX = tetrisCurrentPiece.x;
+            const originalY = tetrisCurrentPiece.y;
+            tetrisCurrentPiece.shape = rotatedShape;
+
+            const kicks = [0, -1, 1, -2, 2]; 
+            for (let i = 0; i < kicks.length; i++) {
+                tetrisCurrentPiece.x = originalX + kicks[i];
+                if (!tetrisCheckCollision(tetrisCurrentPiece, 0, 0)) {
+                    tetrisDrawGame();
+                    return;
+                }
+            }
+            
+            tetrisCurrentPiece.shape = originalShape;
+            tetrisCurrentPiece.x = originalX;
+            tetrisCurrentPiece.y = originalY;
+        }
+
+        function tetrisSoftDrop() {
+            tetrisMovePiece(0, 1);
+        }
+
+        function tetrisHardDrop() {
+            while (tetrisMovePiece(0, 1)) { }
+            tetrisLockPiece();
+        }
+
+        function tetrisLockPiece() {
+            tetrisMergePiece();
+            tetrisClearLines();
+            tetrisCurrentPiece = tetrisNextPiece;
+            tetrisNextPiece = tetrisGenerateRandomPiece();
+            tetrisDrawNextPiece();
+
+            if (tetrisCheckCollision(tetrisCurrentPiece, 0, 0)) {
+                isTetrisGameOver = true;
+                clearInterval(tetrisGameLoop);
+                tetrisGameOverText.style.display = 'block';
+                tetrisCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                tetrisCtx.fillRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+            }
+            tetrisDrawGame();
+        }
+
+        function tetrisMainLoop() {
+            if (isTetrisGameOver) return;
+            if (!tetrisMovePiece(0, 1)) { 
+                tetrisLockPiece();
+            }
+            tetrisDrawGame();
+        }
+
+        function tetrisDrawGame() {
+            tetrisCtx.clearRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+            tetrisDrawBoard();
+            tetrisDrawPiece(tetrisCtx, tetrisCurrentPiece);
+        }
+
+        function iniciarTetrisGame() {
+            tetrisCreateBoard();
+            tetrisScore = 0;
+            tetrisLevel = 1;
+            tetrisDropInterval = 1000;
+            isTetrisGameOver = false;
+            tetrisScoreDisplay.textContent = tetrisScore;
+            tetrisLevelDisplay.textContent = tetrisLevel;
+            tetrisGameOverText.style.display = 'none';
+            tetrisCurrentPiece = tetrisGenerateRandomPiece();
+            tetrisNextPiece = tetrisGenerateRandomPiece();
+            tetrisDrawNextPiece();
+            clearInterval(tetrisGameLoop);
+            tetrisGameLoop = setInterval(tetrisMainLoop, tetrisDropInterval);
+            tetrisDrawGame();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (currentGame !== 'tetris' || isTetrisGameOver) return;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'a':
+                    tetrisMovePiece(-1, 0);
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                    tetrisMovePiece(1, 0);
+                    break;
+                case 'ArrowDown':
+                case 's':
+                    tetrisSoftDrop();
+                    break;
+                case 'ArrowUp':
+                case 'w':
+                    tetrisRotatePiece(1); 
+                    break;
+                case ' ': 
+                    e.preventDefault(); 
+                    tetrisHardDrop();
+                    break;
+                case 'z': 
+                    tetrisRotatePiece(-1);
+                    break;
+                case 'r': 
+                    if(isTetrisGameOver) iniciarTetrisGame();
+                    break;
+            }
+        });
+    });
+    </script>
+</body>
+</html>
