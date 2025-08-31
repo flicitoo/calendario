@@ -3,28 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador Interactivo + Juegos</title>
+    <title>Planificador Interactivo + Juegos (Dark Modern)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
         :root {
-            --color-primario: #6a11cb;
-            --color-secundario: #2575fc;
-            --color-acento: #ff6f61;
-            --color-fondo: #f0f2f5;
-            --color-texto: #333;
-            --sombra-suave: 0 8px 25px rgba(0, 0, 0, 0.1);
-            --sombra-profunda: 0 12px 35px rgba(0, 0, 0, 0.2);
-            --borde-radio: 15px;
-            /* Colores para Snake */
-            --snake-bg: #8ECC39;
-            --snake-color: #3A5123;
-            --apple-color: #E74C3C;
-            /* Colores para Tetris */
+            /* Paleta de Colores Oscuros */
+            --color-background: #1a1a1a; /* Negro muy oscuro */
+            --color-surface: #2c2c2c;    /* Gris oscuro para elementos principales */
+            --color-text-light: #e0e0e0; /* Texto claro */
+            --color-text-medium: #b0b0b0; /* Texto secundario */
+            --color-border: #444;       /* Borde suave */
+
+            /* Acentos de color */
+            --color-accent-blue: #00bfff; /* Azul eléctrico */
+            --color-accent-green: #39ff14; /* Verde neón */
+            --color-accent-red: #ff4500;  /* Rojo vibrante */
+            --color-accent-purple: #9300ff; /* Púrpura */
+
+            /* Sombras y radios */
+            --sombra-suave: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --sombra-profunda: 0 8px 25px rgba(0, 0, 0, 0.6);
+            --borde-radio: 12px;
+
+            /* Colores específicos de los juegos (adaptados al tema oscuro) */
+            --snake-bg: #1a1a1a; /* Fondo oscuro para snake */
+            --snake-color: var(--color-accent-green); /* Serpiente verde neón */
+            --apple-color: var(--color-accent-red);   /* Manzana roja */
+
             --tetris-bg: #1a1a1a;
-            --tetris-border: #444;
-            --tetris-text: #eee;
+            --tetris-border: var(--color-border);
+            --tetris-text: var(--color-text-light);
             --tetris-score-bg: #333;
         }
 
@@ -32,13 +42,14 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--color-fondo);
-            color: var(--color-texto);
+            background-color: var(--color-background);
+            color: var(--color-text-light);
             display: flex;
             justify-content: center;
             align-items: flex-start;
             min-height: 100vh;
             padding: 20px;
+            overflow-x: hidden; /* Evita scroll horizontal en móviles */
         }
 
         .main-wrapper {
@@ -58,10 +69,11 @@
 
         .calendario-container {
             width: 100%;
-            background: white;
+            background: var(--color-surface);
             border-radius: var(--borde-radio);
             box-shadow: var(--sombra-profunda);
             overflow: hidden;
+            border: 1px solid var(--color-border);
         }
         
         .calendario-header {
@@ -69,8 +81,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 20px 25px;
-            background: linear-gradient(135deg, var(--color-primario), var(--color-secundario));
-            color: white;
+            background: linear-gradient(135deg, #303030, #1f1f1f); /* Gradiente oscuro */
+            color: var(--color-text-light);
+            border-bottom: 1px solid #3a3a3a;
         }
         
         .calendario-header h1 { font-size: 1.5rem; }
@@ -79,17 +92,63 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 1px;
-            background-color: #e0e0e0;
+            background-color: #3a3a3a; /* Separadores */
         }
 
-        .dia-semana, .dia-mes { display: flex; background-color: white; }
-        .dia-semana { justify-content: center; align-items: center; padding: 10px 5px; font-size: 0.8rem; font-weight: 600; }
-        .dia-mes { min-height: 80px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; flex-direction: column; justify-content: space-between; padding: 5px; }
-        .dia-mes:not(.otro-mes):hover { transform: translateY(-3px) scale(1.02); z-index: 10; }
-        .dia-mes.otro-mes { color: #ccc; background-color: #f7f7f7; cursor: default; }
-        .numero-dia { font-size: 0.9rem; align-self: flex-end; }
-        .plan-preview { position: absolute; top:0; left:0; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -1; filter: brightness(0.7); }
-        .dia-mes.con-plan .numero-dia { color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.5); font-weight: bold; }
+        .dia-semana, .dia-mes { display: flex; background-color: var(--color-surface); }
+        .dia-semana { 
+            justify-content: center; 
+            align-items: center; 
+            padding: 10px 5px; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            color: var(--color-text-medium);
+            background-color: #252525;
+        }
+        .dia-mes { 
+            min-height: 80px; 
+            cursor: pointer; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; 
+            position: relative; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            padding: 5px; 
+            border: 1px solid transparent; /* Para el efecto hover */
+        }
+        .dia-mes:not(.otro-mes):hover { 
+            transform: translateY(-3px) scale(1.02); 
+            box-shadow: var(--sombra-suave); 
+            background-color: #3a3a3a;
+            border-color: var(--color-accent-blue);
+            z-index: 10; 
+        }
+        .dia-mes.otro-mes { 
+            color: #777; 
+            background-color: #202020; 
+            cursor: default; 
+            border-color: transparent;
+        }
+        .numero-dia { 
+            font-size: 0.9rem; 
+            align-self: flex-end; 
+            font-weight: 500;
+            color: var(--color-text-light);
+        }
+        .plan-preview { 
+            position: absolute; 
+            top:0; left:0; 
+            width: 100%; height: 100%; 
+            background-size: cover; 
+            background-position: center; 
+            z-index: -1; 
+            filter: brightness(0.5); /* Oscurece la imagen para que el texto sea legible */
+            opacity: 0.6;
+        }
+        .dia-mes.con-plan .numero-dia { 
+            color: white; 
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
+            font-weight: bold; 
+        }
 
         /* --- CONTROLES Y JUEGO --- */
         .game-selection-wrapper {
@@ -101,6 +160,10 @@
             width: 100%;
             flex-shrink: 0;
             text-align: center;
+            background: var(--color-surface);
+            border-radius: var(--borde-radio);
+            box-shadow: var(--sombra-suave);
+            border: 1px solid var(--color-border);
         }
 
         .game-selection-buttons {
@@ -112,8 +175,8 @@
 
         .game-selection-buttons button {
             font-family: 'Press Start 2P', cursive;
-            background: #2b2b2b;
-            color: #7aff23;
+            background: #444;
+            color: var(--color-text-light);
             border: none;
             padding: 15px 25px;
             border-radius: 10px;
@@ -122,16 +185,26 @@
             box-shadow: var(--sombra-suave);
             flex: 1 1 auto; 
             min-width: 150px;
+            border: 1px solid var(--color-border);
         }
 
         .game-selection-buttons button.snake-btn {
-            background: var(--snake-color);
-            color: var(--snake-bg);
+            background: var(--snake-color); /* Verde neón */
+            color: var(--color-background);
+            text-shadow: 1px 1px 0 #000;
+            border-color: var(--snake-color);
+        }
+        .game-selection-buttons button.tetris-btn {
+            background: var(--color-accent-blue); /* Azul eléctrico */
+            color: var(--color-background);
+            text-shadow: 1px 1px 0 #000;
+            border-color: var(--color-accent-blue);
         }
 
         .game-selection-buttons button:hover { 
-            transform: translateY(-3px); 
+            transform: translateY(-5px) scale(1.05); 
             box-shadow: var(--sombra-profunda); 
+            filter: brightness(1.2);
         }
         
         /* Contenedores de juegos individuales */
@@ -141,12 +214,13 @@
             align-items: center;
             gap: 15px;
             padding: 20px;
-            background: white;
+            background: var(--color-surface);
             border-radius: var(--borde-radio);
             box-shadow: var(--sombra-profunda);
             width: 440px;
             flex-shrink: 0;
             margin: 0 auto;
+            border: 1px solid var(--color-border);
         }
         
         .back-btn {
@@ -159,6 +233,12 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             margin-bottom: 15px;
+            border: 1px solid #666;
+        }
+        .back-btn:hover {
+            background: #6a6a6a;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
         }
 
         /* SNAKE STYLES */
@@ -172,6 +252,7 @@
             color: var(--snake-color);
             font-size: 1.2rem;
             text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
         .game-over {
             position: absolute;
@@ -190,11 +271,12 @@
             gap: 10px;
             width: 100%;
             max-width: 300px;
+            margin-top: 20px;
         }
 
         .snake-mobile-controls button {
             background: var(--snake-color);
-            color: var(--snake-bg);
+            color: var(--color-background);
             border: none;
             border-radius: 50%;
             padding: 20px;
@@ -202,6 +284,13 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: var(--sombra-suave);
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .snake-mobile-controls button:active {
+            transform: scale(0.9);
+            filter: brightness(0.8);
         }
         .snake-mobile-controls button.up { grid-area: up; }
         .snake-mobile-controls button.down { grid-area: down; }
@@ -241,7 +330,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 2.5rem;
-            color: #f00;
+            color: var(--color-accent-red);
             text-shadow: 4px 4px 0 #000;
             display: none;
             text-align: center;
@@ -255,8 +344,8 @@
             justify-content: center;
         }
         .tetris-mobile-controls button {
-            background: rgba(var(--color-primario), 0.8);
-            color: white;
+            background: var(--color-accent-blue);
+            color: var(--color-background);
             border: none;
             border-radius: 10px;
             padding: 15px;
@@ -266,9 +355,11 @@
             box-shadow: var(--sombra-suave);
             transition: background 0.2s ease, transform 0.2s ease;
             -webkit-tap-highlight-color: transparent; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
         .tetris-mobile-controls button:active {
             transform: scale(0.95);
+            filter: brightness(0.8);
         }
         .tetris-control-row {
             display: flex;
@@ -279,33 +370,121 @@
 
 
         /* --- MODALES --- */
-        .modal-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.4s ease; z-index: 1000; }
+        .modal-background { 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0, 0, 0, 0.85); 
+            backdrop-filter: blur(5px);
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 0.4s ease; 
+            z-index: 1000; 
+        }
         .modal-background.visible { opacity: 1; visibility: visible; }
-        .modal-content { background: white; border-radius: var(--borde-radio); box-shadow: var(--sombra-profunda); width: 90%; max-width: 500px; transform: scale(0.9); transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .modal-content { 
+            background: var(--color-surface); 
+            border-radius: var(--borde-radio); 
+            box-shadow: var(--sombra-profunda); 
+            border: 1px solid var(--color-border);
+            width: 90%; 
+            max-width: 500px; 
+            transform: scale(0.9); 
+            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); 
+            color: var(--color-text-light);
+        }
         .modal-background.visible .modal-content { transform: scale(1); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; border-bottom: 1px solid #eee; }
-        .modal-header h2 { font-size: 1.2rem; }
-        .modal-close { background: transparent; border: none; font-size: 1.8rem; cursor: pointer; transition: transform 0.3s ease; }
-        .modal-close:hover { transform: rotate(90deg); }
+        .modal-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 20px 25px; 
+            border-bottom: 1px solid #3a3a3a; 
+        }
+        .modal-header h2 { font-size: 1.2rem; color: var(--color-text-light); }
+        .modal-close { 
+            background: transparent; 
+            border: none; 
+            font-size: 1.8rem; 
+            cursor: pointer; 
+            transition: transform 0.3s ease; 
+            color: var(--color-text-medium);
+        }
+        .modal-close:hover { transform: rotate(90deg) scale(1.1); color: var(--color-accent-red); }
         
         /* Modal Edición */
         #editModal .modal-body { padding: 25px; }
-        .file-upload-wrapper { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: background-color 0.3s; margin-bottom: 15px; }
-        .file-upload-wrapper:hover { background-color: #f9f9f9; }
+        .file-upload-wrapper { 
+            border: 2px dashed #666; 
+            border-radius: 10px; 
+            padding: 20px; 
+            text-align: center; 
+            cursor: pointer; 
+            transition: background-color 0.3s, border-color 0.3s; 
+            margin-bottom: 15px; 
+            color: var(--color-text-medium);
+        }
+        .file-upload-wrapper:hover { 
+            background-color: #3a3a3a; 
+            border-color: var(--color-accent-blue);
+            color: var(--color-text-light);
+        }
         #imageUpload { display: none; }
-        #imagePreview { max-width: 100%; max-height: 150px; border-radius: 5px; margin-top: 15px; }
-        #planText { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; min-height: 100px; }
+        #imagePreview { max-width: 100%; max-height: 150px; border-radius: 5px; margin-top: 15px; border: 1px solid #555; }
+        #planText { 
+            width: 100%; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #666; 
+            min-height: 100px; 
+            background-color: #333;
+            color: var(--color-text-light);
+            resize: vertical;
+        }
+        #planText::placeholder { color: #999; }
         
         /* Modal Visualización */
         #viewModal .modal-content { max-width: 600px; padding: 0; overflow: hidden; }
-        .view-image { width: 100%; height: 250px; background-size: cover; background-position: center; }
-        .view-text { padding: 25px; white-space: pre-wrap; }
+        .view-image { 
+            width: 100%; 
+            height: 250px; 
+            background-size: cover; 
+            background-position: center; 
+            border-bottom: 1px solid #3a3a3a;
+        }
+        .view-text { padding: 25px; white-space: pre-wrap; color: var(--color-text-light); }
 
-        .modal-footer { display: flex; justify-content: space-between; gap: 15px; padding: 15px 25px; background-color: #f9f9f9; border-top: 1px solid #eee; }
-        .modal-footer button { flex-grow: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        #guardarPlan { background: var(--color-acento); color: white; }
-        #borrarPlan { background: #555; color: white; }
-        #editarPlan { background: var(--color-secundario); color: white; width: 100%; }
+        .modal-footer { 
+            display: flex; 
+            justify-content: space-between; 
+            gap: 15px; 
+            padding: 15px 25px; 
+            background-color: #252525; 
+            border-top: 1px solid #3a3a3a; 
+        }
+        .modal-footer button { 
+            flex-grow: 1; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; 
+            color: var(--color-background);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        #guardarPlan { background: var(--color-accent-green); }
+        #borrarPlan { background: var(--color-accent-red); }
+        #editarPlan { background: var(--color-accent-blue); width: 100%; }
+
+        .modal-footer button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
+            filter: brightness(1.1);
+        }
 
         /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 900px) {
@@ -322,7 +501,7 @@
             .tetris-game-over-text { font-size: 2rem; }
             .tetris-mobile-controls { display: flex; flex-direction: column; } 
             .tetris-mobile-controls button { padding: 12px; font-size: 1.2rem; }
-            .snake-mobile-controls { display: grid; }
+            .snake-mobile-controls { display: grid; } /* Mostrar controles móviles de snake */
         }
     </style>
 </head>
@@ -439,7 +618,7 @@
             snakeGameContainer.style.display = 'none';
             tetrisGameContainer.style.display = 'none';
             
-            clearInterval(snakeGameLoop); 
+            cancelAnimationFrame(snakeGameLoop); // Usamos cancelAnimationFrame para Snake
             clearInterval(tetrisGameLoop); 
 
             if (view === 'planner') {
@@ -627,20 +806,34 @@
         let isSnakeGameOver = false;
         let snakeGameLoop;
         
+        let snakeInitialTickRate = 150; // Velocidad inicial (ms por movimiento)
+        let snakeTickRate = snakeInitialTickRate; 
+        let lastMoveTime = 0;
+        let appleCount = 0; // Contador de manzanas comidas
+        const SPEED_INCREASE_INTERVAL = 20; // Manzanas para aumentar velocidad
+        const SPEED_DECREASE_AMOUNT = 20; // Cuánto disminuir el tick rate (ms)
+
         const generarSnakeManzana = () => {
-            snakeApple = {
-                x: Math.floor(Math.random() * (snakeBoard.width / snakeGridSize)),
-                y: Math.floor(Math.random() * (snakeBoard.height / snakeGridSize))
-            };
+            let newApplePos;
+            do {
+                newApplePos = {
+                    x: Math.floor(Math.random() * (snakeBoard.width / snakeGridSize)),
+                    y: Math.floor(Math.random() * (snakeBoard.height / snakeGridSize))
+                };
+            } while (snake.some(part => part.x === newApplePos.x && part.y === newApplePos.y));
+            snakeApple = newApplePos;
         };
         
         const dibujarSnake = () => {
+            snakeCtx.clearRect(0, 0, snakeBoard.width, snakeBoard.height);
             snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-bg');
             snakeCtx.fillRect(0, 0, snakeBoard.width, snakeBoard.height);
             
             snake.forEach(part => {
                 snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
-                snakeCtx.fillRect(part.x * snakeGridSize, part.y * snakeGridSize, snakeGridSize - 2, snakeGridSize - 2);
+                snakeCtx.fillRect(part.x * snakeGridSize, part.y * snakeGridSize, snakeGridSize, snakeGridSize);
+                snakeCtx.strokeStyle = 'rgba(0,0,0,0.2)'; 
+                snakeCtx.strokeRect(part.x * snakeGridSize, part.y * snakeGridSize, snakeGridSize, snakeGridSize);
             });
             
             snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple-color');
@@ -654,8 +847,15 @@
 
             if (cabeza.x === snakeApple.x && cabeza.y === snakeApple.y) {
                 snakeScore++;
+                appleCount++;
                 snakeScoreDisplay.textContent = snakeScore;
                 generarSnakeManzana();
+
+                // Aumentar velocidad cada X manzanas
+                if (appleCount % SPEED_INCREASE_INTERVAL === 0) {
+                    snakeTickRate = Math.max(50, snakeTickRate - SPEED_DECREASE_AMOUNT); // Velocidad mínima de 50ms
+                    console.log("Velocidad Snake aumentada. Nuevo tickRate:", snakeTickRate);
+                }
             } else {
                 snake.pop();
             }
@@ -664,52 +864,69 @@
         const chequearSnakeColision = () => {
             const cabeza = snake[0];
             if (cabeza.x < 0 || cabeza.x >= snakeBoard.width / snakeGridSize || cabeza.y < 0 || cabeza.y >= snakeBoard.height / snakeGridSize) {
-                return true;
+                return true; 
             }
             for (let i = 1; i < snake.length; i++) {
-                if (cabeza.x === snake[i].x && cabeza.y === snake[i].y) return true;
+                if (cabeza.x === snake[i].x && cabeza.y === snake[i].y) return true; 
             }
             return false;
         };
 
-        const mainSnakeLoop = () => {
-            if (chequearSnakeColision()) {
-                isSnakeGameOver = true;
-                snakeGameOverText.style.display = 'block';
-                clearInterval(snakeGameLoop);
+        const mainSnakeLoop = (currentTime) => {
+            if (isSnakeGameOver) {
                 return;
             }
-            moverSnakeSerpiente();
+
+            if (currentTime - lastMoveTime > snakeTickRate) {
+                lastMoveTime = currentTime;
+                moverSnakeSerpiente();
+                if (chequearSnakeColision()) {
+                    isSnakeGameOver = true;
+                    snakeGameOverText.style.display = 'block';
+                    return;
+                }
+            }
             dibujarSnake();
+            snakeGameLoop = requestAnimationFrame(mainSnakeLoop);
         };
         
+        let changingDirection = false; // Flag para evitar cambios múltiples de dirección por tick
+
         const cambiarSnakeDireccion = (direccion) => {
-            if (isSnakeGameOver) return;
+            if (isSnakeGameOver || changingDirection) return;
+            changingDirection = true;
 
             const ARRIBA = snakeDy === -1;
             const ABAJO = snakeDy === 1;
             const DERECHA = snakeDx === 1;
             const IZQUIERDA = snakeDx === -1;
 
-            if ((direccion === "up" || direccion === "w") && !ABAJO) { snakeDx = 0; snakeDy = -1; }
-            if ((direccion === "down" || direccion === "s") && !ARRIBA) { snakeDx = 0; snakeDy = 1; }
-            if ((direccion === "left" || direccion === "a") && !DERECHA) { snakeDx = -1; snakeDy = 0; }
-            if ((direccion === "right" || direccion === "d") && !IZQUIERDA) { snakeDx = 1; snakeDy = 0; }
+            if ((direccion === "up") && !ABAJO) { snakeDx = 0; snakeDy = -1; }
+            if ((direccion === "down") && !ARRIBA) { snakeDx = 0; snakeDy = 1; }
+            if ((direccion === "left") && !DERECHA) { snakeDx = -1; snakeDy = 0; }
+            if ((direccion === "right") && !IZQUIERDA) { snakeDx = 1; snakeDy = 0; }
+            
+            // Permitir cambiar de dirección de nuevo después de un breve momento
+            setTimeout(() => changingDirection = false, snakeTickRate / 2); // Ajusta este valor si es necesario
         };
 
         const iniciarSnakeGame = () => {
             snake = [{ x: 10, y: 10 }];
-            snakeDx = 0; snakeDy = 0;
+            snakeDx = 1; snakeDy = 0; 
             snakeScore = 0;
+            appleCount = 0;
+            snakeTickRate = snakeInitialTickRate; // Resetear velocidad
             snakeScoreDisplay.textContent = snakeScore;
             isSnakeGameOver = false;
             snakeGameOverText.style.display = 'none';
             generarSnakeManzana();
-            clearInterval(snakeGameLoop);
-            snakeGameLoop = setInterval(mainSnakeLoop, 200); 
+            lastMoveTime = performance.now();
+            cancelAnimationFrame(snakeGameLoop);
+            snakeGameLoop = requestAnimationFrame(mainSnakeLoop); 
         };
 
         document.addEventListener('keydown', e => {
+            if (currentGame !== 'snake' || isSnakeGameOver) return;
             const key = e.key;
             if (key === 'ArrowUp' || key === 'w') cambiarSnakeDireccion('up');
             if (key === 'ArrowDown' || key === 's') cambiarSnakeDireccion('down');
@@ -745,13 +962,13 @@
         const TETRIS_BLOCK_SIZE = tetrisCanvas.width / TETRIS_COLS; 
         const TETRIS_COLORS = [
             null, 
-            '#FF0D72', 
-            '#0DC2FF', 
-            '#0DFF72', 
-            '#F538FF', 
-            '#FF8E0D', 
-            '#FFE138', 
-            '#3877FF'  
+            '#FF0D72', // Rosa
+            '#0DC2FF', // Azul claro
+            '#0DFF72', // Verde
+            '#F538FF', // Morado
+            '#FF8E0D', // Naranja
+            '#FFE138', // Amarillo
+            '#3877FF'  // Azul oscuro
         ];
 
         let tetrisBoard = [];
@@ -979,6 +1196,8 @@
 
         function tetrisDrawGame() {
             tetrisCtx.clearRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+            tetrisCtx.fillStyle = '#000'; // Fondo del tablero de Tetris
+            tetrisCtx.fillRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
             tetrisDrawBoard();
             tetrisDrawPiece(tetrisCtx, tetrisCurrentPiece);
         }
@@ -1032,6 +1251,9 @@
                     break;
             }
         });
+        
+        // Mostrar el planificador por defecto
+        showView('planner');
     });
     </script>
 </body>
