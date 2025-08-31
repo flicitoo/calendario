@@ -246,6 +246,8 @@
         #snake-game-board {
             border: 5px solid var(--snake-color);
             background-color: var(--snake-bg);
+            /* Importante para el control táctil */
+            touch-action: none; 
         }
 
         .game-info {
@@ -503,6 +505,10 @@
             .tetris-mobile-controls { display: flex; flex-direction: column; } 
             .tetris-mobile-controls button { padding: 12px; font-size: 1.2rem; }
             .snake-mobile-controls { display: grid; } /* Mostrar controles móviles de snake */
+            #snake-game-board {
+                width: 300px;
+                height: 300px;
+            }
         }
     </style>
 </head>
@@ -798,7 +804,7 @@
         
         const snakeGridSize = 20;
         let snake = [{ x: 10, y: 10, angle: 0 }]; 
-        let snakeApples = []; // Array para almacenar múltiples manzanas
+        let snakeApples = [];
         let snakeDx = 0, snakeDy = 0;
         let snakeScore = 0;
         let isSnakeGameOver = false;
@@ -812,6 +818,41 @@
         const SPEED_DECREASE_AMOUNT = 20; 
         const ROTATION_SPEED = Math.PI / 10; 
         const SCORE_FOR_TWO_APPLES = 50; 
+
+        // Gestos táctiles
+        let touchStartX = 0, touchStartY = 0;
+        const SWIPE_THRESHOLD = 20;
+
+        snakeBoard.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        snakeBoard.addEventListener('touchmove', e => {
+            e.preventDefault();
+        }, { passive: false });
+
+        snakeBoard.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Deslizamiento horizontal
+                if (Math.abs(dx) > SWIPE_THRESHOLD) {
+                    if (dx > 0) cambiarSnakeDireccion('right');
+                    else cambiarSnakeDireccion('left');
+                }
+            } else {
+                // Deslizamiento vertical
+                if (Math.abs(dy) > SWIPE_THRESHOLD) {
+                    if (dy > 0) cambiarSnakeDireccion('down');
+                    else cambiarSnakeDireccion('up');
+                }
+            }
+        });
 
         const toRadians = (angle) => angle * (Math.PI / 180);
 
@@ -922,36 +963,31 @@
         const moverSnakeSerpiente = () => {
             if (isSnakeGameOver) return;
 
-            // Calcular el nuevo ángulo objetivo para la dirección de movimiento
             let targetAngle;
-            if (snakeDx === 1) targetAngle = 0; // Derecha (0 radianes)
-            else if (snakeDx === -1) targetAngle = Math.PI; // Izquierda (PI radianes)
-            else if (snakeDy === 1) targetAngle = Math.PI / 2; // Abajo (PI/2 radianes)
-            else targetAngle = -Math.PI / 2; // Arriba (-PI/2 radianes)
+            if (snakeDx === 1) targetAngle = 0;
+            else if (snakeDx === -1) targetAngle = Math.PI;
+            else if (snakeDy === 1) targetAngle = Math.PI / 2;
+            else targetAngle = -Math.PI / 2;
 
             let head = snake[0];
             let currentHeadAngle = head.angle;
             let angleDiff = targetAngle - currentHeadAngle;
 
-            // Normalizar la diferencia de ángulo para el giro más corto
             if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
             if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 
-            // Aplicar rotación gradual a la cabeza
             if (Math.abs(angleDiff) > ROTATION_SPEED) {
                 head.angle += Math.sign(angleDiff) * ROTATION_SPEED;
             } else {
                 head.angle = targetAngle; 
             }
-            // Asegurarse de que el ángulo esté en el rango [0, 2PI)
             head.angle = (head.angle + 2 * Math.PI) % (2 * Math.PI);
 
-            // Mover la cabeza a la nueva posición de cuadrícula
             const newHeadX = head.x + snakeDx;
             const newHeadY = head.y + snakeDy;
 
             const newHead = { x: newHeadX, y: newHeadY, angle: head.angle };
-            snake.unshift(newHead); // Añadir nueva cabeza
+            snake.unshift(newHead);
 
             let ateApple = false;
             for (let i = 0; i < snakeApples.length; i++) {
@@ -960,11 +996,11 @@
                     appleCount++;
                     snakeScoreDisplay.textContent = snakeScore;
                     
-                    snakeApples.splice(i, 1); // Remover la manzana comida
-                    snakeApples.push(generarSnakeManzana()); // Generar una nueva
+                    snakeApples.splice(i, 1);
+                    snakeApples.push(generarSnakeManzana());
 
                     if (snakeScore >= SCORE_FOR_TWO_APPLES && snakeApples.length < 2) {
-                        snakeApples.push(generarSnakeManzana()); // Añadir segunda manzana si el score lo permite
+                        snakeApples.push(generarSnakeManzana());
                     }
 
                     if (appleCount % SPEED_INCREASE_INTERVAL === 0) {
@@ -977,10 +1013,9 @@
             }
 
             if (!ateApple) {
-                snake.pop(); // Eliminar la cola si no come manzana
+                snake.pop();
             }
 
-            // Propagar los ángulos a lo largo del cuerpo (para el efecto de giro del cuerpo)
             for (let i = 1; i < snake.length; i++) {
                 snake[i].angle = snake[i-1].angle;
             }
@@ -1044,6 +1079,13 @@
         };
 
         const iniciarSnakeGame = () => {
+            if (window.innerWidth <= 600) {
+                snakeBoard.width = 300;
+                snakeBoard.height = 300;
+            } else {
+                snakeBoard.width = 400;
+                snakeBoard.height = 400;
+            }
             snake = [{ x: 10, y: 10, angle: toRadians(0) }];
             snakeDx = 1; snakeDy = 0; 
             snakeScore = 0;
@@ -1053,8 +1095,8 @@
             isSnakeGameOver = false;
             snakeGameOverText.style.display = 'none';
             
-            snakeApples = []; // Limpiar manzanas existentes
-            snakeApples.push(generarSnakeManzana()); // Generar la primera manzana
+            snakeApples = [];
+            snakeApples.push(generarSnakeManzana());
             
             lastMoveTime = performance.now();
             cancelAnimationFrame(snakeGameLoop);
