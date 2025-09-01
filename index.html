@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>calendario interactivo + Juegos</title>
+    <title>Planificador Interactivo + Juegos (Dark Modern)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -353,6 +353,29 @@
             line-height: 1.2;
             padding: 0 10px;
         }
+        
+        #snake-cheat-input {
+            position: fixed; /* O fixed si quieres que siempre esté visible en la ventana */
+            bottom: 10px; /* Ajusta la posición para que no esté dentro del canvas */
+            left: 10px;
+            width: 150px;
+            height: 25px;
+            background-color: var(--color-background); /* Color de fondo del body */
+            color: var(--color-background); /* Color de texto camuflado */
+            border: none;
+            outline: none;
+            font-size: 1px; /* Letra casi invisible, pero lo suficientemente grande para escribir */
+            cursor: default;
+            caret-color: transparent; /* Oculta el cursor de escritura */
+            padding: 0;
+            margin: 0;
+            z-index: 10;
+        }
+        #snake-cheat-input:focus {
+            outline: none; /* Asegúrate de que no tenga borde de foco visible */
+            border: none;
+        }
+
 
         /* TETRIS STYLES */
         #tetris-game-container {
@@ -764,6 +787,8 @@
 <body>
     <canvas id="global-snake-background" class="global-background"></canvas>
     <canvas id="global-tetris-background" class="global-background"></canvas>
+    
+    <input type="text" id="snake-cheat-input">
 
     <div class="main-wrapper">
         <div class="planner-wrapper">
@@ -907,6 +932,7 @@
 
                 if (view === 'planner') {
                     plannerWrapper.style.display = 'flex';
+                    snakeCheatInput.style.display = 'none'; // Ocultar el input de truco
                 } else if (view === 'snake') {
                     snakeGameContainer.style.display = 'flex';
                     document.getElementById('snake-instructions').style.display = 'block';
@@ -914,6 +940,7 @@
                     drawSnakeBackground(); // Dibuja el fondo interno de Snake
                     drawGlobalSnakeBackground(); // Dibuja el fondo externo de Snake
                     globalSnakeBackground.classList.add('active');
+                    snakeCheatInput.style.display = 'block'; // Mostrar el input de truco
                 } else if (view === 'tetris') {
                     tetrisGameContainer.style.display = 'flex';
                     document.getElementById('tetris-instructions').style.display = 'block';
@@ -921,6 +948,7 @@
                     drawTetrisBackground(); // Dibuja el fondo interno de Tetris
                     drawGlobalTetrisBackground(); // Dibuja el fondo externo de Tetris
                     globalTetrisBackground.classList.add('active');
+                    snakeCheatInput.style.display = 'none'; // Ocultar el input de truco
                 }
                 currentGame = view;
             };
@@ -1150,6 +1178,7 @@
             const snakePersonalBestDisplay = document.getElementById('snake-personal-best');
             const snakeGameOverText = document.getElementById('snake-gameOverText');
             const snakeRestartBtn = document.getElementById('snake-restart-btn');
+            const snakeCheatInput = document.getElementById('snake-cheat-input');
 
             const snakeGridSize = 20;
             let snake = [{
@@ -1704,8 +1733,8 @@
                 drawGlobalSnakeBackground();
 
                 snake = [{
-                    x: 10,
-                    y: 10
+                    x: 5,
+                    y: 5
                 }];
                 snakeDx = 1;
                 snakeDy = 0;
@@ -1734,6 +1763,15 @@
                 if (key === 'ArrowDown' || key === 's') cambiarSnakeDireccion('down');
                 if (key === 'ArrowLeft' || key === 'a') cambiarSnakeDireccion('left');
                 if (key === 'ArrowRight' || key === 'd') cambiarSnakeDireccion('right');
+            });
+            
+            snakeCheatInput.addEventListener('input', (e) => {
+                if (e.target.value.toLowerCase() === 'killer') {
+                    snakeScore += 40;
+                    snakeScoreDisplay.textContent = snakeScore;
+                    e.target.value = ''; // Limpiar el campo para que se pueda volver a usar
+                    checkAndUpdateSnakePersonalBest(); // Actualizar PB si el cheat lo supera
+                }
             });
 
 
