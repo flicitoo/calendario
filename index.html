@@ -10,17 +10,17 @@
 
         :root {
             /* Paleta de Colores Oscuros */
-            --color-background: #1a1a1a; /* Negro muy oscuro */
-            --color-surface: #2c2c2c;    /* Gris oscuro para elementos principales */
-            --color-text-light: #e0e0e0; /* Texto claro */
-            --color-text-medium: #b0b0b0; /* Texto secundario */
-            --color-border: #444;       /* Borde suave */
+            --color-background: #1a1a1a;
+            --color-surface: #2c2c2c;
+            --color-text-light: #e0e0e0;
+            --color-text-medium: #b0b0b0;
+            --color-border: #444;
 
             /* Acentos de color */
-            --color-accent-blue: #00bfff; /* Azul eléctrico */
-            --color-accent-green: #39ff14; /* Verde neón */
-            --color-accent-red: #ff4500;  /* Rojo vibrante */
-            --color-accent-purple: #9300ff; /* Púrpura */
+            --color-accent-blue: #00bfff;
+            --color-accent-green: #39ff14;
+            --color-accent-red: #ff4500;
+            --color-accent-purple: #9300ff;
 
             /* Sombras y radios */
             --sombra-suave: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -28,18 +28,34 @@
             --borde-radio: 12px;
 
             /* Colores específicos de los juegos (adaptados al tema oscuro) */
-            --snake-bg: #103312; /* Verde oscuro para snake */
-            --snake-color: var(--color-accent-green); /* Serpiente verde neón */
-            --apple-color: var(--color-accent-red);   /* Manzana roja */
-            --apple-leaf-color: #6B8E23; /* Verde oliva para la hoja */
+            --snake-bg: #103312; /* Este será sobrescrito por el canvas de fondo */
+            --snake-color: var(--color-accent-green);
+            --apple-color: var(--color-accent-red);
+            --apple-leaf-color: #6B8E23;
 
-            --tetris-bg: #1a1a1a;
+            --tetris-bg: #1a1a1a; /* Fondo original de Tetris */
             --tetris-border: var(--color-border);
             --tetris-text: var(--color-text-light);
             --tetris-score-bg: #333;
+
+            /* Tetris Pieces Colors */
+            --tetris-color-I: #0DC2FF;
+            --tetris-color-J: #0D72FF;
+            --tetris-color-L: #FF8E0D;
+            --tetris-color-O: #FFE138;
+            --tetris-color-S: #0DFF72;
+            --tetris-color-T: #F538FF;
+            --tetris-color-Z: #FF0D72;
+
+            /* Nuevo color para la sombra */
+            --tetris-shadow-color: rgba(255, 255, 255, 0.1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: 'Poppins', sans-serif;
@@ -50,8 +66,24 @@
             align-items: flex-start;
             min-height: 100vh;
             padding: 20px;
-            overflow-x: hidden; /* Evita scroll horizontal en móviles */
+            overflow-x: hidden;
+            position: relative; /* Necesario para los fondos globales */
         }
+
+        /* --- Global Game Backgrounds --- */
+        #global-snake-background, #global-tetris-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Detrás de todo el contenido */
+            display: none; /* Por defecto, oculto */
+        }
+        #global-snake-background.active, #global-tetris-background.active {
+            display: block;
+        }
+
 
         .main-wrapper {
             width: 100%;
@@ -59,6 +91,8 @@
             display: flex;
             align-items: flex-start;
             gap: 20px;
+            position: relative; /* Asegura que esté por encima de los fondos globales */
+            z-index: 1;
         }
 
         .planner-wrapper {
@@ -75,80 +109,96 @@
             box-shadow: var(--sombra-profunda);
             overflow: hidden;
             border: 1px solid var(--color-border);
+            margin-bottom: 20px; /* Separación entre calendarios */
         }
-        
+
         .calendario-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 20px 25px;
-            background: linear-gradient(135deg, #303030, #1f1f1f); /* Gradiente oscuro */
+            background: linear-gradient(135deg, #303030, #1f1f1f);
             color: var(--color-text-light);
             border-bottom: 1px solid #3a3a3a;
         }
-        
-        .calendario-header h1 { font-size: 1.5rem; }
+
+        .calendario-header h1 {
+            font-size: 1.5rem;
+        }
 
         .calendario-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 1px;
-            background-color: #3a3a3a; /* Separadores */
+            background-color: #3a3a3a;
         }
 
-        .dia-semana, .dia-mes { display: flex; background-color: var(--color-surface); }
-        .dia-semana { 
-            justify-content: center; 
-            align-items: center; 
-            padding: 10px 5px; 
-            font-size: 0.8rem; 
-            font-weight: 600; 
+        .dia-semana,
+        .dia-mes {
+            display: flex;
+            background-color: var(--color-surface);
+        }
+
+        .dia-semana {
+            justify-content: center;
+            align-items: center;
+            padding: 10px 5px;
+            font-size: 0.8rem;
+            font-weight: 600;
             color: var(--color-text-medium);
             background-color: #252525;
         }
-        .dia-mes { 
-            min-height: 80px; 
-            cursor: pointer; 
-            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; 
-            position: relative; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            padding: 5px; 
-            border: 1px solid transparent; /* Para el efecto hover */
+
+        .dia-mes {
+            min-height: 80px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            position: relative;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            border: 1px solid transparent;
         }
-        .dia-mes:not(.otro-mes):hover { 
-            transform: translateY(-3px) scale(1.02); 
-            box-shadow: var(--sombra-suave); 
+
+        .dia-mes:not(.otro-mes):hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: var(--sombra-suave);
             background-color: #3a3a3a;
             border-color: var(--color-accent-blue);
-            z-index: 10; 
+            z-index: 10;
         }
-        .dia-mes.otro-mes { 
-            color: #777; 
-            background-color: #202020; 
-            cursor: default; 
+
+        .dia-mes.otro-mes {
+            color: #777;
+            background-color: #202020;
+            cursor: default;
             border-color: transparent;
         }
-        .numero-dia { 
-            font-size: 0.9rem; 
-            align-self: flex-end; 
+
+        .numero-dia {
+            font-size: 0.9rem;
+            align-self: flex-end;
             font-weight: 500;
             color: var(--color-text-light);
         }
-        .plan-preview { 
-            position: absolute; 
-            top:0; left:0; 
-            width: 100%; height: 100%; 
-            background-size: cover; 
-            background-position: center; 
-            z-index: -1; 
-            filter: brightness(0.5); /* Oscurece la imagen para que el texto sea legible */
+
+        .plan-preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            filter: brightness(0.5);
             opacity: 0.6;
         }
-        .dia-mes.con-plan .numero-dia { 
-            color: white; 
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
-            font-weight: bold; 
+
+        .dia-mes.con-plan .numero-dia {
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            font-weight: bold;
         }
 
         /* --- CONTROLES Y JUEGO --- */
@@ -171,7 +221,7 @@
             display: flex;
             gap: 15px;
             justify-content: center;
-            flex-wrap: wrap; 
+            flex-wrap: wrap;
         }
 
         .game-selection-buttons button {
@@ -184,33 +234,34 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: var(--sombra-suave);
-            flex: 1 1 auto; 
+            flex: 1 1 auto;
             min-width: 150px;
             border: 1px solid var(--color-border);
         }
 
         .game-selection-buttons button.snake-btn {
-            background: var(--snake-color); /* Verde neón */
+            background: var(--snake-color);
             color: var(--color-background);
             text-shadow: 1px 1px 0 #000;
             border-color: var(--snake-color);
         }
+
         .game-selection-buttons button.tetris-btn {
-            background: var(--color-accent-blue); /* Azul eléctrico */
+            background: var(--color-accent-blue);
             color: var(--color-background);
             text-shadow: 1px 1px 0 #000;
             border-color: var(--color-accent-blue);
         }
 
-        .game-selection-buttons button:hover { 
-            transform: translateY(-5px) scale(1.05); 
-            box-shadow: var(--sombra-profunda); 
+        .game-selection-buttons button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--sombra-profunda);
             filter: brightness(1.2);
         }
-        
+
         /* Contenedores de juegos individuales */
         .game-container {
-            display: none; 
+            display: none;
             flex-direction: column;
             align-items: center;
             gap: 15px;
@@ -222,9 +273,12 @@
             flex-shrink: 0;
             margin: 0 auto;
             border: 1px solid var(--color-border);
+            position: relative; /* Asegura que esté encima del fondo global */
+            z-index: 2;
         }
-        
-        .back-btn {
+
+        .back-btn,
+        .restart-btn {
             background: #555;
             color: white;
             border: none;
@@ -233,72 +287,137 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             border: 1px solid #666;
         }
-        .back-btn:hover {
+
+        .back-btn:hover,
+        .restart-btn:hover {
             background: #6a6a6a;
             transform: translateY(-2px);
             box-shadow: var(--sombra-suave);
         }
 
         /* SNAKE STYLES */
-        #snake-game-board {
-            border: 5px solid var(--snake-color);
-            background-color: var(--snake-bg);
-            /* Importante para el control táctil */
-            touch-action: none; 
+        #snake-game-container {
+            position: relative;
         }
 
+        #snake-game-board {
+            border: 5px solid var(--snake-color);
+            background-color: transparent; /* Fondo transparente para mostrar el canvas de fondo */
+            touch-action: none;
+            position: relative;
+            z-index: 2; /* Asegura que el juego esté encima del fondo */
+        }
+
+        #snake-background-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; /* Coloca el fondo detrás del juego */
+            /* No necesitamos opacidad aquí, el arte de fondo ya está diseñado para no distraer */
+        }
+
+
         .game-info {
-            font-family: 'Press Start 2P', cursive;
+            font-family: 'Press+Start+2P', cursive;
             color: var(--snake-color);
             font-size: 1.2rem;
             text-align: center;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column; /* Cambiado a columna para el PB */
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
         }
+
+        .game-info-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
         .game-over {
             position: absolute;
             color: var(--apple-color);
-            font-family: 'Press Start 2P', cursive;
+            font-family: 'Press+Start+2P', cursive;
             font-size: 2rem;
             text-align: center;
             display: none;
             text-shadow: 3px 3px 0 #000;
-        }
-        
-        /* Ocultar botones de control en dispositivos móviles */
-        .snake-mobile-controls {
-            display: none;
+            z-index: 3; /* Encima del juego */
+            line-height: 1.2;
+            padding: 0 10px;
         }
 
         /* TETRIS STYLES */
         #tetris-game-container {
-            background: var(--tetris-bg);
+            background-color: var(--tetris-bg);
             border: 5px solid var(--tetris-border);
             color: var(--tetris-text);
-            font-family: 'Press Start 2P', cursive;
+            font-family: 'Press+Start+2P', cursive;
             position: relative;
         }
-        #tetris-canvas {
-            background: #000;
-            border: 2px solid var(--tetris-border);
-            display: block; 
-            margin: 0 auto;
+
+        #tetris-background-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
         }
+
+        #tetris-canvas {
+            background: transparent; /* Fondo transparente para mostrar el canvas de fondo */
+            border: 2px solid var(--tetris-border);
+            display: block;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
         .tetris-info {
             display: flex;
-            justify-content: space-around;
+            flex-direction: column; /* Cambiado a columna para el PB */
+            align-items: center;
             width: 100%;
             margin-top: 10px;
             font-size: 0.9rem;
+            z-index: 2;
+            position: relative;
+            margin-bottom: 10px;
         }
-        .tetris-info div {
+        
+        .tetris-info-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .tetris-info-row div {
             padding: 8px 12px;
             background: var(--tetris-score-bg);
             border-radius: 8px;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
         }
+
+        .tetris-personal-best {
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 5px;
+            background: var(--tetris-score-bg);
+            border-radius: 8px;
+            width: calc(100% - 20px);
+            margin: 0 10px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
         .tetris-game-over-text {
             position: absolute;
             top: 50%;
@@ -310,14 +429,17 @@
             display: none;
             text-align: center;
             line-height: 1.2;
+            z-index: 3;
         }
+
         .tetris-mobile-controls {
-            display: none; 
+            display: none;
             width: 100%;
             margin-top: 15px;
             gap: 10px;
             justify-content: center;
         }
+
         .tetris-mobile-controls button {
             background: var(--color-accent-blue);
             color: var(--color-background);
@@ -329,13 +451,15 @@
             cursor: pointer;
             box-shadow: var(--sombra-suave);
             transition: background 0.2s ease, transform 0.2s ease;
-            -webkit-tap-highlight-color: transparent; 
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            -webkit-tap-highlight-color: transparent;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
+
         .tetris-mobile-controls button:active {
             transform: scale(0.95);
             filter: brightness(0.8);
         }
+
         .tetris-control-row {
             display: flex;
             justify-content: center;
@@ -343,117 +467,175 @@
             width: 100%;
         }
 
-
         /* --- MODALES --- */
-        .modal-background { 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background-color: rgba(0, 0, 0, 0.85); 
+        .modal-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(5px);
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            opacity: 0; 
-            visibility: hidden; 
-            transition: opacity 0.4s ease; 
-            z-index: 1000; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease;
+            z-index: 1000;
         }
-        .modal-background.visible { opacity: 1; visibility: visible; }
-        .modal-content { 
-            background: var(--color-surface); 
-            border-radius: var(--borde-radio); 
-            box-shadow: var(--sombra-profunda); 
+
+        .modal-background.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: var(--borde-radio);
+            box-shadow: var(--sombra-profunda);
             border: 1px solid var(--color-border);
-            width: 90%; 
-            max-width: 500px; 
-            transform: scale(0.9); 
-            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); 
+            width: 90%;
+            max-width: 500px;
+            transform: scale(0.9);
+            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             color: var(--color-text-light);
         }
-        .modal-background.visible .modal-content { transform: scale(1); }
-        .modal-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 20px 25px; 
-            border-bottom: 1px solid #3a3a3a; 
+
+        .modal-background.visible .modal-content {
+            transform: scale(1);
         }
-        .modal-header h2 { font-size: 1.2rem; color: var(--color-text-light); }
-        .modal-close { 
-            background: transparent; 
-            border: none; 
-            font-size: 1.8rem; 
-            cursor: pointer; 
-            transition: transform 0.3s ease; 
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            color: var(--color-text-light);
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
             color: var(--color-text-medium);
         }
-        .modal-close:hover { transform: rotate(90deg) scale(1.1); color: var(--color-accent-red); }
-        
+
+        .modal-close:hover {
+            transform: rotate(90deg) scale(1.1);
+            color: var(--color-accent-red);
+        }
+
         /* Modal Edición */
-        #editModal .modal-body { padding: 25px; }
-        .file-upload-wrapper { 
-            border: 2px dashed #666; 
-            border-radius: 10px; 
-            padding: 20px; 
-            text-align: center; 
-            cursor: pointer; 
-            transition: background-color 0.3s, border-color 0.3s; 
-            margin-bottom: 15px; 
+        #editModal .modal-body {
+            padding: 25px;
+        }
+
+        .file-upload-wrapper {
+            border: 2px dashed #666;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+            margin-bottom: 15px;
             color: var(--color-text-medium);
         }
-        .file-upload-wrapper:hover { 
-            background-color: #3a3a3a; 
+
+        .file-upload-wrapper:hover {
+            background-color: #3a3a3a;
             border-color: var(--color-accent-blue);
             color: var(--color-text-light);
         }
-        #imageUpload { display: none; }
-        #imagePreview { max-width: 100%; max-height: 150px; border-radius: 5px; margin-top: 15px; border: 1px solid #555; }
-        #planText { 
-            width: 100%; 
-            padding: 10px; 
-            border-radius: 8px; 
-            border: 1px solid #666; 
-            min-height: 100px; 
+
+        #imageUpload {
+            display: none;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border: 1px solid #555;
+        }
+
+        #planText {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #666;
+            min-height: 100px;
             background-color: #333;
             color: var(--color-text-light);
             resize: vertical;
         }
-        #planText::placeholder { color: #999; }
-        
+
+        #planText::placeholder {
+            color: #999;
+        }
+
         /* Modal Visualización */
-        #viewModal .modal-content { max-width: 600px; padding: 0; overflow: hidden; }
-        .view-image { 
-            width: 100%; 
-            height: 250px; 
-            background-size: cover; 
-            background-position: center; 
+        #viewModal .modal-content {
+            max-width: 600px;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .view-image {
+            width: 100%;
+            height: 250px;
+            background-size: cover;
+            background-position: center;
             border-bottom: 1px solid #3a3a3a;
         }
-        .view-text { padding: 25px; white-space: pre-wrap; color: var(--color-text-light); }
 
-        .modal-footer { 
-            display: flex; 
-            justify-content: space-between; 
-            gap: 15px; 
-            padding: 15px 25px; 
-            background-color: #252525; 
-            border-top: 1px solid #3a3a3a; 
+        .view-text {
+            padding: 25px;
+            white-space: pre-wrap;
+            color: var(--color-text-light);
         }
-        .modal-footer button { 
-            flex-grow: 1; 
-            padding: 12px; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; 
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 15px 25px;
+            background-color: #252525;
+            border-top: 1px solid #3a3a3a;
+        }
+
+        .modal-footer button {
+            flex-grow: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
             color: var(--color-background);
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
-        #guardarPlan { background: var(--color-accent-green); }
-        #borrarPlan { background: var(--color-accent-red); }
-        #editarPlan { background: var(--color-accent-blue); width: 100%; }
+
+        #guardarPlan {
+            background: var(--color-accent-green);
+        }
+
+        #borrarPlan {
+            background: var(--color-accent-red);
+        }
+
+        #editarPlan {
+            background: var(--color-accent-blue);
+            width: 100%;
+        }
 
         .modal-footer button:hover {
             transform: translateY(-2px);
@@ -461,29 +643,127 @@
             filter: brightness(1.1);
         }
 
+        /* --- MODAL DE INSTRUCCIONES --- */
+        .instruction-modal {
+            background-color: var(--color-surface);
+            border-radius: var(--borde-radio);
+            box-shadow: var(--sombra-profunda);
+            border: 1px solid var(--color-border);
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            font-family: 'Poppins', sans-serif;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .instruction-modal h3 {
+            font-family: 'Press+Start+2P', cursive;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--color-accent-blue);
+        }
+
+        .instruction-modal p {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            color: var(--color-text-light);
+        }
+
+        .instruction-modal button {
+            background: var(--color-accent-green);
+            color: var(--color-background);
+            font-family: 'Press+Start+2P', cursive;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: var(--sombra-suave);
+        }
+
+        .instruction-modal button:hover {
+            transform: scale(1.05);
+        }
+
         /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 900px) {
-            .main-wrapper { flex-direction: column; }
-            .game-container { width: 100%; }
+            .main-wrapper {
+                flex-direction: column;
+            }
+
+            .game-container {
+                width: 100%;
+            }
         }
+
         @media (max-width: 600px) {
-            body { padding: 10px; }
-            .calendario-header { padding: 15px; }
-            .calendario-header h1 { font-size: 1.2rem; }
-            .dia-mes { min-height: 60px; font-size: 0.8rem; }
-            .dia-semana { font-size: 0.7rem; }
-            .game-selection-buttons button { padding: 10px 15px; font-size: 0.9rem; min-width: unset; }
-            .tetris-game-over-text { font-size: 2rem; }
-            .tetris-mobile-controls { display: flex; flex-direction: column; } 
-            .tetris-mobile-controls button { padding: 12px; font-size: 1.2rem; }
+            body {
+                padding: 10px;
+            }
+
+            .calendario-header {
+                padding: 15px;
+            }
+
+            .calendario-header h1 {
+                font-size: 1.2rem;
+            }
+
+            .dia-mes {
+                min-height: 60px;
+                font-size: 0.8rem;
+            }
+
+            .dia-semana {
+                font-size: 0.7rem;
+            }
+
+            .game-selection-buttons button {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+                min-width: unset;
+            }
+
+            .tetris-game-over-text {
+                font-size: 2rem;
+            }
+
+            .tetris-mobile-controls {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .tetris-mobile-controls button {
+                padding: 12px;
+                font-size: 1.2rem;
+            }
+
             #snake-game-board {
                 width: 300px;
                 height: 300px;
             }
+
+            .game-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .restart-btn {
+                margin-top: 5px;
+            }
         }
     </style>
 </head>
+
 <body>
+    <canvas id="global-snake-background" class="global-background"></canvas>
+    <canvas id="global-tetris-background" class="global-background"></canvas>
 
     <div class="main-wrapper">
         <div class="planner-wrapper">
@@ -494,34 +774,49 @@
                 </div>
             </div>
 
-            <div class="calendario-container">
-                <div class="calendario-header">
-                    <h1>Agosto 2025</h1>
-                </div>
-                <div class="calendario-grid">
-                </div>
+            <div id="calendarios-container">
             </div>
         </div>
 
         <div id="snake-game-container" class="game-container">
-            <button class="back-btn">Volver al Planificador</button>
-            <div class="game-info">Puntaje: <span id="snake-score">0</span></div>
+            <button class="back-btn" data-game="snake">Volver al Planificador</button>
+            <div class="game-info">
+                <div class="game-info-row">
+                    <span>Puntaje: <span id="snake-score">0</span></span>
+                    <span>Personal Best: <span id="snake-personal-best">0</span></span>
+                </div>
+                <button id="snake-restart-btn" class="restart-btn" style="display:none;">Reiniciar Juego</button>
+            </div>
             <div style="position:relative;">
+                <canvas id="snake-background-canvas"></canvas>
                 <canvas id="snake-game-board" width="400" height="400"></canvas>
                 <div class="game-over" id="snake-gameOverText">GAME OVER</div>
+                <div id="snake-instructions" class="instruction-modal" style="display:none;">
+                    <h3>Snake</h3>
+                    <p>En escritorio, usa las flechas o 'WASD'. En móvil, desliza el dedo en la dirección que quieras mover la serpiente. ¡Come las manzanas y no choques contra las paredes ni contigo mismo!</p>
+                    <button class="start-game-btn">Entiendo</button>
+                </div>
             </div>
-            </div>
+        </div>
 
         <div id="tetris-game-container" class="game-container">
-            <button class="back-btn">Volver al Planificador</button>
+            <button class="back-btn" data-game="tetris">Volver al Planificador</button>
             <div class="tetris-info">
-                <div>SCORE: <span id="tetris-score">0</span></div>
-                <div>LEVEL: <span id="tetris-level">1</span></div>
-                <div>NEXT: <canvas id="tetris-next-piece-canvas" width="80" height="80"></canvas></div>
+                <div class="tetris-info-row">
+                    <div>SCORE: <span id="tetris-score">0</span></div>
+                    <div>LEVEL: <span id="tetris-level">1</span></div>
+                    <div>NEXT: <canvas id="tetris-next-piece-canvas" width="80" height="80"></canvas></div>
+                </div>
+                <div class="tetris-personal-best">
+                    PB Score: <span id="tetris-pb-score">0</span> | PB Level: <span id="tetris-pb-level">0</span>
+                </div>
             </div>
-            <canvas id="tetris-canvas" width="200" height="400"></canvas>
-            <div class="tetris-game-over-text" id="tetris-gameOverText">GAME OVER<br>Presiona "R" para reiniciar</div>
-            
+            <div style="position:relative;">
+                <canvas id="tetris-background-canvas"></canvas>
+                <canvas id="tetris-canvas" width="200" height="400"></canvas>
+                <div class="tetris-game-over-text" id="tetris-gameOverText">GAME OVER<br>Presiona "R" para reiniciar</div>
+            </div>
+
             <div class="tetris-mobile-controls">
                 <div class="tetris-control-row">
                     <button id="tetris-rotate-left">⤺</button>
@@ -536,12 +831,20 @@
                     <button id="tetris-hard-drop">⬇</button>
                 </div>
             </div>
+            <button id="tetris-restart-btn" class="restart-btn" style="margin-top: 15px; display:none;">Reiniciar Juego</button>
+            <div id="tetris-instructions" class="instruction-modal" style="display:none;">
+                <h3>Tetris</h3>
+                <p>Usa las teclas de flecha para mover la pieza. Flecha arriba o 'W' para rotar. Espacio para caída rápida y flecha abajo o 'S' para caída suave.</p>
+                <button class="start-game-btn">Entiendo</button>
+            </div>
         </div>
     </div>
 
     <div class="modal-background" id="editModal">
         <div class="modal-content">
-            <div class="modal-header"><h2 id="editModalTitle"></h2><button class="modal-close">&times;</button></div>
+            <div class="modal-header">
+                <h2 id="editModalTitle"></h2><button class="modal-close">&times;</button>
+            </div>
             <form id="planForm">
                 <div class="modal-body">
                     <label for="imageUpload" class="file-upload-wrapper">
@@ -560,7 +863,9 @@
     </div>
     <div class="modal-background" id="viewModal">
         <div class="modal-content">
-            <div class="modal-header"><h2 id="viewModalTitle"></h2><button class="modal-close">&times;</button></div>
+            <div class="modal-header">
+                <h2 id="viewModalTitle"></h2><button class="modal-close">&times;</button>
+            </div>
             <div class="modal-body">
                 <div class="view-image" id="viewImage"></div>
                 <div class="view-text" id="viewText"></div>
@@ -572,818 +877,1384 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- GESTIÓN DE VISTAS (PLANIFICADOR, SNAKE, TETRIS) ---
-        const plannerContainer = document.querySelector('.calendario-container');
-        const plannerWrapper = document.querySelector('.planner-wrapper');
-        const snakeGameContainer = document.getElementById('snake-game-container');
-        const tetrisGameContainer = document.getElementById('tetris-game-container');
-        
-        const showSnakeBtn = document.getElementById('show-snake-btn');
-        const showTetrisBtn = document.getElementById('show-tetris-btn');
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- GESTIÓN DE VISTAS (PLANIFICADOR, SNAKE, TETRIS) ---
+            const plannerContainer = document.getElementById('calendarios-container');
+            const plannerWrapper = document.querySelector('.planner-wrapper');
+            const snakeGameContainer = document.getElementById('snake-game-container');
+            const tetrisGameContainer = document.getElementById('tetris-game-container');
 
-        const backButtons = document.querySelectorAll('.back-btn');
+            const showSnakeBtn = document.getElementById('show-snake-btn');
+            const showTetrisBtn = document.getElementById('show-tetris-btn');
 
-        let currentGame = 'planner'; 
+            const backButtons = document.querySelectorAll('.back-btn');
 
-        const showView = (view) => {
-            // Ocultar todos los contenedores primero
-            plannerWrapper.style.display = 'none';
-            snakeGameContainer.style.display = 'none';
-            tetrisGameContainer.style.display = 'none';
-            
-            // Detener bucles de juego
-            cancelAnimationFrame(snakeGameLoop); 
-            clearInterval(tetrisGameLoop); 
+            const globalSnakeBackground = document.getElementById('global-snake-background');
+            const globalTetrisBackground = document.getElementById('global-tetris-background');
 
-            // Mostrar la vista correcta
-            if (view === 'planner') {
-                plannerWrapper.style.display = 'flex';
-            } else if (view === 'snake') {
-                snakeGameContainer.style.display = 'flex';
-                iniciarSnakeGame();
-            } else if (view === 'tetris') {
-                tetrisGameContainer.style.display = 'flex';
-                iniciarTetrisGame();
-            }
-            currentGame = view;
-        };
-        
-        showSnakeBtn.addEventListener('click', () => showView('snake'));
-        showTetrisBtn.addEventListener('click', () => showView('tetris'));
+            let currentGame = 'planner';
 
-        backButtons.forEach(btn => {
-            btn.addEventListener('click', () => showView('planner'));
-        });
+            const showView = (view) => {
+                plannerWrapper.style.display = 'none';
+                snakeGameContainer.style.display = 'none';
+                tetrisGameContainer.style.display = 'none';
 
-        // --- LÓGICA DEL PLANIFICADOR ---
-        const calendarioGrid = document.querySelector('.calendario-grid');
-        const editModal = document.getElementById('editModal');
-        const viewModal = document.getElementById('viewModal');
-        const planForm = document.getElementById('planForm');
-        const imageUpload = document.getElementById('imageUpload');
-        const imagePreview = document.getElementById('imagePreview');
-        const borrarPlanBtn = document.getElementById('borrarPlan');
-        
-        let diaSeleccionado = null;
-        let imagenBase64 = null;
-        const mesAnioActual = 'agosto-2025';
+                globalSnakeBackground.classList.remove('active');
+                globalTetrisBackground.classList.remove('active');
 
-        const generarCalendario = () => {
-            const diasSemanas = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            diasSemanas.forEach(d => calendarioGrid.innerHTML += `<div class="dia-semana">${d}</div>`);
-            
-            const diasMesAnterior = 5; 
-            const diasEnMes = 31;
-            
-            for(let i=0; i<diasMesAnterior; i++) calendarioGrid.innerHTML += `<div class="dia-mes otro-mes"></div>`;
-            for(let i=1; i<=diasEnMes; i++) calendarioGrid.innerHTML += `<div class="dia-mes" data-dia="${i}"><span class="numero-dia">${i}</span></div>`;
-        };
+                cancelAnimationFrame(snakeGameLoop);
+                clearInterval(tetrisGameLoop);
 
-        const cargarPlanes = () => {
-            document.querySelectorAll('.dia-mes:not(.otro-mes)').forEach(dia => {
-                const numeroDia = dia.dataset.dia;
+                if (view === 'planner') {
+                    plannerWrapper.style.display = 'flex';
+                } else if (view === 'snake') {
+                    snakeGameContainer.style.display = 'flex';
+                    document.getElementById('snake-instructions').style.display = 'block';
+                    document.getElementById('snake-restart-btn').style.display = 'none';
+                    drawSnakeBackground(); // Dibuja el fondo interno de Snake
+                    drawGlobalSnakeBackground(); // Dibuja el fondo externo de Snake
+                    globalSnakeBackground.classList.add('active');
+                } else if (view === 'tetris') {
+                    tetrisGameContainer.style.display = 'flex';
+                    document.getElementById('tetris-instructions').style.display = 'block';
+                    document.getElementById('tetris-restart-btn').style.display = 'none';
+                    drawTetrisBackground(); // Dibuja el fondo interno de Tetris
+                    drawGlobalTetrisBackground(); // Dibuja el fondo externo de Tetris
+                    globalTetrisBackground.classList.add('active');
+                }
+                currentGame = view;
+            };
+
+            showSnakeBtn.addEventListener('click', () => showView('snake'));
+            showTetrisBtn.addEventListener('click', () => showView('tetris'));
+
+            backButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (currentGame === 'snake') {
+                        cancelAnimationFrame(snakeGameLoop); // Detener el loop de Snake
+                        isSnakeGameOver = true; // Asegurarse de que el juego de Snake se detenga
+                    } else if (currentGame === 'tetris') {
+                        clearInterval(tetrisGameLoop); // Detener el loop de Tetris
+                        isTetrisGameOver = true; // Asegurarse de que el juego de Tetris se detenga
+                    }
+                    showView('planner');
+                });
+            });
+
+            // --- LÓGICA DEL PLANIFICADOR ---
+            const editModal = document.getElementById('editModal');
+            const viewModal = document.getElementById('viewModal');
+            const planForm = document.getElementById('planForm');
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+            const borrarPlanBtn = document.getElementById('borrarPlan');
+
+            let diaSeleccionado = null;
+            let imagenBase64 = null;
+            let mesAnioActual = null;
+            const mesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            const generarCalendario = () => {
+                plannerContainer.innerHTML = ''; // Limpiar contenedores existentes
+                const hoy = new Date();
+                let anio = hoy.getFullYear();
+                let mes = hoy.getMonth();
+                
+                // Si es el 31 de agosto, el siguiente mes es septiembre
+                if (hoy.getDate() === 31 && mes === 7) { 
+                    mes = 8; // Septiembre
+                }
+
+                for (let i = mes; i < 12; i++) {
+                    const primerDiaDelMes = new Date(anio, i, 1);
+                    const numDiasEnMes = new Date(anio, i + 1, 0).getDate();
+                    const primerDiaSemana = primerDiaDelMes.getDay(); // 0 = Domingo, 1 = Lunes
+
+                    const calendarioContainer = document.createElement('div');
+                    calendarioContainer.classList.add('calendario-container');
+                    calendarioContainer.setAttribute('data-mes-anio', `${i + 1}-${anio}`); // Usar 1-12 para el mes
+                    
+                    const header = document.createElement('div');
+                    header.classList.add('calendario-header');
+                    header.innerHTML = `<h1>${mesNombres[i]} ${anio}</h1>`;
+                    calendarioContainer.appendChild(header);
+
+                    const grid = document.createElement('div');
+                    grid.classList.add('calendario-grid');
+                    calendarioContainer.appendChild(grid);
+
+                    const diasSemanas = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                    diasSemanas.forEach(d => {
+                        const diaSemanaDiv = document.createElement('div');
+                        diaSemanaDiv.classList.add('dia-semana');
+                        diaSemanaDiv.textContent = d;
+                        grid.appendChild(diaSemanaDiv);
+                    });
+
+                    // Añadir días del mes anterior
+                    for (let j = 0; j < primerDiaSemana; j++) {
+                        grid.innerHTML += `<div class="dia-mes otro-mes"></div>`;
+                    }
+
+                    // Añadir días del mes actual
+                    for (let j = 1; j <= numDiasEnMes; j++) {
+                        const diaMesDiv = document.createElement('div');
+                        diaMesDiv.classList.add('dia-mes');
+                        diaMesDiv.setAttribute('data-dia', j);
+                        diaMesDiv.innerHTML = `<span class="numero-dia">${j}</span>`;
+                        grid.appendChild(diaMesDiv);
+                    }
+                    plannerContainer.appendChild(calendarioContainer);
+                }
+                cargarPlanes();
+                attachDayClickListeners();
+            };
+
+            const attachDayClickListeners = () => {
+                document.querySelectorAll('.dia-mes:not(.otro-mes)').forEach(dia => {
+                    dia.addEventListener('click', () => {
+                        diaSeleccionado = dia;
+                        const numeroDia = dia.dataset.dia;
+                        const mesAnio = dia.closest('.calendario-container').dataset.mesAnio;
+                        mesAnioActual = mesAnio;
+                        const clave = `plan-${mesAnio}-${numeroDia}`;
+                        const planGuardado = JSON.parse(localStorage.getItem(clave));
+
+                        if (planGuardado && (planGuardado.imagen || planGuardado.texto)) {
+                            abrirModalVisualizacion(planGuardado);
+                        } else {
+                            abrirModalEdicion();
+                        }
+                    });
+                });
+            };
+
+            const cargarPlanes = () => {
+                document.querySelectorAll('.calendario-container').forEach(container => {
+                    const mesAnio = container.dataset.mesAnio;
+                    const dias = container.querySelectorAll('.dia-mes:not(.otro-mes)');
+                    dias.forEach(dia => {
+                        const numeroDia = dia.dataset.dia;
+                        const clave = `plan-${mesAnio}-${numeroDia}`;
+                        const planGuardado = JSON.parse(localStorage.getItem(clave));
+
+                        const previewExistente = dia.querySelector('.plan-preview');
+                        if (previewExistente) previewExistente.remove();
+                        dia.classList.remove('con-plan');
+
+                        if (planGuardado && planGuardado.imagen) {
+                            const previewDiv = document.createElement('div');
+                            previewDiv.classList.add('plan-preview');
+                            previewDiv.style.backgroundImage = `url('${planGuardado.imagen}')`;
+                            dia.appendChild(previewDiv);
+                            dia.classList.add('con-plan');
+                        }
+                    });
+                });
+            };
+
+            const abrirModalEdicion = () => {
+                const numeroDia = diaSeleccionado.dataset.dia;
+                const [mes, anio] = mesAnioActual.split('-');
+                document.getElementById('editModalTitle').textContent = `Plan para el día ${numeroDia} de ${mesNombres[mes - 1]}`;
                 const clave = `plan-${mesAnioActual}-${numeroDia}`;
                 const planGuardado = JSON.parse(localStorage.getItem(clave));
 
-                const previewExistente = dia.querySelector('.plan-preview');
-                if (previewExistente) previewExistente.remove();
-                dia.classList.remove('con-plan');
+                planForm.reset();
+                imagePreview.style.display = 'none';
+                imagenBase64 = null;
 
-                if (planGuardado && planGuardado.imagen) {
-                    const previewDiv = document.createElement('div');
-                    previewDiv.classList.add('plan-preview');
-                    previewDiv.style.backgroundImage = `url('${planGuardado.imagen}')`;
-                    dia.appendChild(previewDiv);
-                    dia.classList.add('con-plan');
+                if (planGuardado) {
+                    document.getElementById('planText').value = planGuardado.texto || '';
+                    if (planGuardado.imagen) {
+                        imagePreview.src = planGuardado.imagen;
+                        imagePreview.style.display = 'block';
+                        imagenBase64 = planGuardado.imagen;
+                    }
+                }
+                editModal.classList.add('visible');
+            };
+
+            const abrirModalVisualizacion = (plan) => {
+                const numeroDia = diaSeleccionado.dataset.dia;
+                const [mes, anio] = mesAnioActual.split('-');
+                document.getElementById('viewModalTitle').textContent = `Plan del día ${numeroDia} de ${mesNombres[mes - 1]}`;
+                document.getElementById('viewImage').style.backgroundImage = plan.imagen ? `url('${plan.imagen}')` : 'none';
+                document.getElementById('viewText').textContent = plan.texto;
+                viewModal.classList.add('visible');
+            };
+
+            imageUpload.addEventListener('change', event => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        imagenBase64 = e.target.result;
+                        imagePreview.src = imagenBase64;
+                        imagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
                 }
             });
-        };
-        
-        const abrirModalEdicion = () => {
-            const numeroDia = diaSeleccionado.dataset.dia;
-            document.getElementById('editModalTitle').textContent = `Plan para el día ${numeroDia}`;
-            const clave = `plan-${mesAnioActual}-${numeroDia}`;
-            const planGuardado = JSON.parse(localStorage.getItem(clave));
 
-            planForm.reset();
-            imagePreview.style.display = 'none';
-            imagenBase64 = null;
-
-            if (planGuardado) {
-                document.getElementById('planText').value = planGuardado.texto || '';
-                if(planGuardado.imagen){
-                    imagePreview.src = planGuardado.imagen;
-                    imagePreview.style.display = 'block';
-                    imagenBase64 = planGuardado.imagen;
-                }
-            }
-            editModal.classList.add('visible');
-        };
-        
-        const abrirModalVisualizacion = (plan) => {
-            const numeroDia = diaSeleccionado.dataset.dia;
-            document.getElementById('viewModalTitle').textContent = `Plan del día ${numeroDia}`;
-            document.getElementById('viewImage').style.backgroundImage = plan.imagen ? `url('${plan.imagen}')` : 'none';
-            document.getElementById('viewText').textContent = plan.texto;
-            viewModal.classList.add('visible');
-        };
-
-        imageUpload.addEventListener('change', event => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    imagenBase64 = e.target.result;
-                    imagePreview.src = imagenBase64;
-                    imagePreview.style.display = 'block';
+            planForm.addEventListener('submit', event => {
+                event.preventDefault();
+                const clave = `plan-${mesAnioActual}-${diaSeleccionado.dataset.dia}`;
+                const plan = {
+                    imagen: imagenBase64,
+                    texto: document.getElementById('planText').value
                 };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        planForm.addEventListener('submit', event => {
-            event.preventDefault();
-            const clave = `plan-${mesAnioActual}-${diaSeleccionado.dataset.dia}`;
-            const plan = {
-                imagen: imagenBase64,
-                texto: document.getElementById('planText').value
-            };
-            if (!plan.imagen && !plan.texto) {
-                localStorage.removeItem(clave);
-            } else {
-                localStorage.setItem(clave, JSON.stringify(plan));
-            }
-            cargarPlanes();
-            cerrarModales();
-        });
-
-        borrarPlanBtn.addEventListener('click', () => {
-            const clave = `plan-${mesAnioActual}-${diaSeleccionado.dataset.dia}`;
-            localStorage.removeItem(clave);
-            cargarPlanes();
-            cerrarModales();
-        });
-
-        document.getElementById('editarPlan').addEventListener('click', () => {
-            viewModal.classList.remove('visible');
-            abrirModalEdicion();
-        });
-
-        const cerrarModales = () => {
-            document.querySelectorAll('.modal-background').forEach(modal => modal.classList.remove('visible'));
-        };
-
-        generarCalendario();
-        document.querySelectorAll('.dia-mes:not(.otro-mes)').forEach(dia => {
-            dia.addEventListener('click', () => {
-                diaSeleccionado = dia;
-                const clave = `plan-${mesAnioActual}-${dia.dataset.dia}`;
-                const planGuardado = JSON.parse(localStorage.getItem(clave));
-                if (planGuardado && (planGuardado.imagen || planGuardado.texto)) {
-                    abrirModalVisualizacion(planGuardado);
+                if (!plan.imagen && !plan.texto) {
+                    localStorage.removeItem(clave);
                 } else {
-                    abrirModalEdicion();
+                    localStorage.setItem(clave, JSON.stringify(plan));
                 }
+                cargarPlanes();
+                cerrarModales();
             });
-        });
 
-        document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', cerrarModales));
-        document.querySelectorAll('.modal-background').forEach(modal => {
-            modal.addEventListener('click', e => { if (e.target === modal) cerrarModales(); });
-        });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModales(); });
-        
-        cargarPlanes();
-
-        // --- LÓGICA DEL JUEGO DE SNAKE ---
-        const snakeBoard = document.getElementById('snake-game-board');
-        const snakeCtx = snakeBoard.getContext('2d');
-        const snakeScoreDisplay = document.getElementById('snake-score');
-        const snakeGameOverText = document.getElementById('snake-gameOverText');
-        
-        const snakeGridSize = 20;
-        let snake = [{ x: 10, y: 10, angle: 0 }]; 
-        let snakeApples = [];
-        let snakeDx = 0, snakeDy = 0;
-        let snakeScore = 0;
-        let isSnakeGameOver = false;
-        let snakeGameLoop;
-        
-        let snakeInitialTickRate = 150; 
-        let snakeTickRate = snakeInitialTickRate; 
-        let lastMoveTime = 0;
-        let appleCount = 0; 
-        const SPEED_INCREASE_INTERVAL = 20; 
-        const SPEED_DECREASE_AMOUNT = 20; 
-        const ROTATION_SPEED = Math.PI / 10; 
-        const SCORE_FOR_TWO_APPLES = 50; 
-
-        // Gestos táctiles
-        let touchStartX = 0, touchStartY = 0;
-        const SWIPE_THRESHOLD = 20;
-
-        snakeBoard.addEventListener('touchstart', e => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        snakeBoard.addEventListener('touchmove', e => {
-            e.preventDefault();
-        }, { passive: false });
-
-        snakeBoard.addEventListener('touchend', e => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            
-            const dx = touchEndX - touchStartX;
-            const dy = touchEndY - touchStartY;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (Math.abs(dx) > SWIPE_THRESHOLD) {
-                    if (dx > 0) cambiarSnakeDireccion('right');
-                    else cambiarSnakeDireccion('left');
-                }
-            } else {
-                if (Math.abs(dy) > SWIPE_THRESHOLD) {
-                    if (dy > 0) cambiarSnakeDireccion('down');
-                    else cambiarSnakeDireccion('up');
-                }
-            }
-        });
-
-        const toRadians = (angle) => angle * (Math.PI / 180);
-
-        const generarSnakeManzana = () => {
-            let newApplePos;
-            do {
-                newApplePos = {
-                    x: Math.floor(Math.random() * (snakeBoard.width / snakeGridSize)),
-                    y: Math.floor(Math.random() * (snakeBoard.height / snakeGridSize))
-                };
-            } while (snake.some(part => part.x === newApplePos.x && part.y === newApplePos.y) || 
-                     snakeApples.some(apple => apple.x === newApplePos.x && apple.y === newApplePos.y));
-            return newApplePos;
-        };
-        
-        const dibujarSnake = () => {
-            snakeCtx.clearRect(0, 0, snakeBoard.width, snakeBoard.height);
-            snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-bg');
-            snakeCtx.fillRect(0, 0, snakeBoard.width, snakeBoard.height);
-            
-            const segmentSize = snakeGridSize;
-            const segmentRadius = segmentSize / 2;
-
-            snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
-            snakeCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
-
-            // Dibuja el cuerpo de la serpiente
-            for (let i = snake.length - 1; i > 0; i--) {
-                const currentSegment = snake[i];
-                const prevSegment = snake[i - 1];
-
-                const currentX = currentSegment.x * segmentSize + segmentRadius;
-                const currentY = currentSegment.y * segmentSize + segmentRadius;
-                const prevX = prevSegment.x * segmentSize + segmentRadius;
-                const prevY = prevSegment.y * segmentSize + segmentRadius;
-
-                snakeCtx.beginPath();
-                snakeCtx.moveTo(prevX, prevY);
-                snakeCtx.lineTo(currentX, currentY);
-                snakeCtx.lineCap = 'round';
-                snakeCtx.lineJoin = 'round';
-                snakeCtx.lineWidth = segmentSize;
-                snakeCtx.stroke();
-            }
-
-            // Dibuja la cabeza con rotación
-            const head = snake[0];
-            const headCenterX = head.x * segmentSize + segmentRadius;
-            const headCenterY = head.y * segmentSize + segmentRadius;
-
-            snakeCtx.save(); 
-            snakeCtx.translate(headCenterX, headCenterY);
-            snakeCtx.rotate(head.angle); 
-            snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
-            snakeCtx.beginPath();
-            snakeCtx.arc(0, 0, segmentRadius, 0, Math.PI * 2); 
-            snakeCtx.fill();
-
-            // Dibuja los ojos (siempre "hacia adelante" en la cabeza)
-            snakeCtx.fillStyle = 'white';
-            const eyeSize = segmentRadius * 0.3;
-            const pupilSize = eyeSize * 0.5;
-            const eyeOffset = segmentRadius * 0.3;
-
-            // Ojo derecho (relativo al frente de la cabeza rotada)
-            snakeCtx.beginPath();
-            snakeCtx.arc(segmentRadius * 0.5, -eyeOffset, eyeSize, 0, Math.PI * 2); 
-            snakeCtx.fill();
-            snakeCtx.fillStyle = 'black';
-            snakeCtx.beginPath();
-            snakeCtx.arc(segmentRadius * 0.5, -eyeOffset, pupilSize, 0, Math.PI * 2);
-            snakeCtx.fill();
-
-            // Ojo izquierdo (relativo al frente de la cabeza rotada)
-            snakeCtx.fillStyle = 'white';
-            snakeCtx.beginPath();
-            snakeCtx.arc(segmentRadius * 0.5, eyeOffset, eyeSize, 0, Math.PI * 2); 
-            snakeCtx.fill();
-            snakeCtx.fillStyle = 'black';
-            snakeCtx.beginPath();
-            snakeCtx.arc(segmentRadius * 0.5, eyeOffset, pupilSize, 0, Math.PI * 2);
-            snakeCtx.fill();
-
-            snakeCtx.restore(); 
-            
-            // Dibuja las manzanas
-            snakeApples.forEach(apple => {
-                const appleCenterX = apple.x * segmentSize + segmentRadius;
-                const appleCenterY = apple.y * segmentSize + segmentRadius;
-
-                snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple-color');
-                snakeCtx.beginPath();
-                snakeCtx.arc(appleCenterX, appleCenterY, segmentRadius * 0.8, 0, Math.PI * 2); 
-                snakeCtx.fill();
-                snakeCtx.strokeStyle = 'rgba(0,0,0,0.2)'; 
-                snakeCtx.lineWidth = 1;
-                snakeCtx.stroke();
-
-                snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple-leaf-color');
-                snakeCtx.beginPath();
-                const leafX = appleCenterX + segmentRadius * 0.3;
-                const leafY = appleCenterY - segmentRadius * 0.7;
-                snakeCtx.ellipse(leafX, leafY, segmentRadius * 0.3, segmentRadius * 0.15, -Math.PI / 4, 0, Math.PI * 2);
-                snakeCtx.fill();
+            borrarPlanBtn.addEventListener('click', () => {
+                const clave = `plan-${mesAnioActual}-${diaSeleccionado.dataset.dia}`;
+                localStorage.removeItem(clave);
+                cargarPlanes();
+                cerrarModales();
             });
-        };
 
-        const moverSnakeSerpiente = () => {
-            if (isSnakeGameOver) return;
+            document.getElementById('editarPlan').addEventListener('click', () => {
+                viewModal.classList.remove('visible');
+                abrirModalEdicion();
+            });
 
-            let targetAngle;
-            if (snakeDx === 1) targetAngle = 0;
-            else if (snakeDx === -1) targetAngle = Math.PI;
-            else if (snakeDy === 1) targetAngle = Math.PI / 2;
-            else targetAngle = -Math.PI / 2;
-
-            let head = snake[0];
-            let currentHeadAngle = head.angle;
-            let angleDiff = targetAngle - currentHeadAngle;
-
-            if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-            if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-
-            if (Math.abs(angleDiff) > ROTATION_SPEED) {
-                head.angle += Math.sign(angleDiff) * ROTATION_SPEED;
-            } else {
-                head.angle = targetAngle; 
-            }
-            head.angle = (head.angle + 2 * Math.PI) % (2 * Math.PI);
-
-            const newHeadX = head.x + snakeDx;
-            const newHeadY = head.y + snakeDy;
-
-            const newHead = { x: newHeadX, y: newHeadY, angle: head.angle };
-            snake.unshift(newHead);
-
-            let ateApple = false;
-            for (let i = 0; i < snakeApples.length; i++) {
-                if (newHeadX === snakeApples[i].x && newHeadY === snakeApples[i].y) {
-                    snakeScore++;
-                    appleCount++;
-                    snakeScoreDisplay.textContent = snakeScore;
-                    
-                    snakeApples.splice(i, 1);
-                    snakeApples.push(generarSnakeManzana());
-
-                    if (snakeScore >= SCORE_FOR_TWO_APPLES && snakeApples.length < 2) {
-                        snakeApples.push(generarSnakeManzana());
-                    }
-
-                    if (appleCount % SPEED_INCREASE_INTERVAL === 0) {
-                        snakeTickRate = Math.max(50, snakeTickRate - SPEED_DECREASE_AMOUNT); 
-                        console.log("Velocidad Snake aumentada. Nuevo tickRate:", snakeTickRate);
-                    }
-                    ateApple = true;
-                    break;
-                }
-            }
-
-            if (!ateApple) {
-                snake.pop();
-            }
-
-            for (let i = 1; i < snake.length; i++) {
-                snake[i].angle = snake[i-1].angle;
-            }
-        };
-
-        const chequearSnakeColision = () => {
-            const cabeza = snake[0];
-            if (cabeza.x < 0 || cabeza.x >= snakeBoard.width / snakeGridSize || cabeza.y < 0 || cabeza.y >= snakeBoard.height / snakeGridSize) {
-                return true; 
-            }
-            for (let i = 1; i < snake.length; i++) {
-                if (cabeza.x === snake[i].x && cabeza.y === snake[i].y) return true; 
-            }
-            return false;
-        };
-
-        const mainSnakeLoop = (currentTime) => {
-            if (isSnakeGameOver) {
-                return;
-            }
-
-            snakeGameLoop = requestAnimationFrame(mainSnakeLoop);
-
-            if (currentTime - lastMoveTime > snakeTickRate) {
-                lastMoveTime = currentTime;
-                moverSnakeSerpiente();
-                if (chequearSnakeColision()) {
-                    isSnakeGameOver = true;
-                    snakeGameOverText.style.display = 'block';
-                    cancelAnimationFrame(snakeGameLoop);
-                    return;
-                }
-            }
-            dibujarSnake();
-        };
-        
-        let changingDirection = false; 
-        const cambiarSnakeDireccion = (direccion) => {
-            if (isSnakeGameOver) return;
-            
-            // Lógica para evitar que la serpiente cambie de dirección hacia atrás
-            const ARRIBA = snakeDy === -1;
-            const ABAJO = snakeDy === 1;
-            const DERECHA = snakeDx === 1;
-            const IZQUIERDA = snakeDx === -1;
-        
-            if ((direccion === "up" && !ABAJO) ||
-                (direccion === "down" && !ARRIBA) ||
-                (direccion === "left" && !DERECHA) ||
-                (direccion === "right" && !IZQUIERDA)) {
-                
-                // Actualizar dirección inmediatamente sin delay
-                if (direccion === "up") { snakeDx = 0; snakeDy = -1; }
-                if (direccion === "down") { snakeDx = 0; snakeDy = 1; }
-                if (direccion === "left") { snakeDx = -1; snakeDy = 0; }
-                if (direccion === "right") { snakeDx = 1; snakeDy = 0; }
-                
-                // El flag `changingDirection` no es necesario con el nuevo control.
-                // Simplemente permitimos el cambio si no es la dirección opuesta.
-            }
-        };
-
-
-        const iniciarSnakeGame = () => {
-            if (window.innerWidth <= 600) {
-                snakeBoard.width = 300;
-                snakeBoard.height = 300;
-            } else {
-                snakeBoard.width = 400;
-                snakeBoard.height = 400;
-            }
-            snake = [{ x: 10, y: 10, angle: toRadians(0) }];
-            snakeDx = 1; snakeDy = 0; 
-            snakeScore = 0;
-            appleCount = 0;
-            snakeTickRate = snakeInitialTickRate;
-            snakeScoreDisplay.textContent = snakeScore;
-            isSnakeGameOver = false;
-            snakeGameOverText.style.display = 'none';
-            
-            snakeApples = [];
-            snakeApples.push(generarSnakeManzana());
-            
-            lastMoveTime = performance.now();
-            cancelAnimationFrame(snakeGameLoop);
-            snakeGameLoop = requestAnimationFrame(mainSnakeLoop); 
-        };
-
-        document.addEventListener('keydown', e => {
-            if (currentGame !== 'snake' || isSnakeGameOver) return;
-            const key = e.key;
-            if (key === 'ArrowUp' || key === 'w') cambiarSnakeDireccion('up');
-            if (key === 'ArrowDown' || key === 's') cambiarSnakeDireccion('down');
-            if (key === 'ArrowLeft' || key === 'a') cambiarSnakeDireccion('left');
-            if (key === 'ArrowRight' || key === 'd') cambiarSnakeDireccion('right');
-        });
-
-        // --- LÓGICA DEL JUEGO DE TETRIS ---
-        const tetrisCanvas = document.getElementById('tetris-canvas');
-        const tetrisCtx = tetrisCanvas.getContext('2d');
-        const tetrisNextPieceCanvas = document.getElementById('tetris-next-piece-canvas');
-        const tetrisNextCtx = tetrisNextPieceCanvas.getContext('2d');
-        const tetrisScoreDisplay = document.getElementById('tetris-score');
-        const tetrisLevelDisplay = document.getElementById('tetris-level');
-        const tetrisGameOverText = document.getElementById('tetris-gameOverText');
-
-        document.getElementById('tetris-rotate-left').addEventListener('click', () => { if (!isTetrisGameOver) tetrisRotatePiece(-1); });
-        document.getElementById('tetris-rotate-right').addEventListener('click', () => { if (!isTetrisGameOver) tetrisRotatePiece(1); });
-        document.getElementById('tetris-move-left').addEventListener('click', () => { if (!isTetrisGameOver) tetrisMovePiece(-1, 0); });
-        document.getElementById('tetris-move-right').addEventListener('click', () => { if (!isTetrisGameOver) tetrisMovePiece(1, 0); });
-        document.getElementById('tetris-soft-drop').addEventListener('click', () => { if (!isTetrisGameOver) tetrisSoftDrop(); });
-        document.getElementById('tetris-hard-drop').addEventListener('click', () => { if (!isTetrisGameOver) tetrisHardDrop(); });
-
-
-        const TETRIS_ROWS = 20;
-        const TETRIS_COLS = 10;
-        const TETRIS_BLOCK_SIZE = tetrisCanvas.width / TETRIS_COLS; 
-        const TETRIS_COLORS = [
-            null, 
-            '#FF0D72', 
-            '#0DC2FF', 
-            '#0DFF72', 
-            '#F538FF', 
-            '#FF8E0D', 
-            '#FFE138', 
-            '#3877FF'
-        ];
-
-        let tetrisBoard = [];
-        let tetrisCurrentPiece;
-        let tetrisNextPiece;
-        let tetrisScore = 0;
-        let tetrisLevel = 1;
-        let tetrisDropInterval = 1000; 
-        let tetrisGameLoop;
-        let isTetrisGameOver = false;
-
-        const TETROMINOS = {
-            'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], 
-            'J': [[2,0,0], [2,2,2], [0,0,0]], 
-            'L': [[0,0,3], [3,3,3], [0,0,0]], 
-            'O': [[4,4], [4,4]], 
-            'S': [[0,5,5], [5,5,0], [0,0,0]], 
-            'T': [[0,6,0], [6,6,6], [0,0,0]], 
-            'Z': [[7,7,0], [0,7,7], [0,0,0]]  
-        };
-
-        const TETROMINO_KEYS = Object.keys(TETROMINOS);
-
-        function tetrisCreateBoard() {
-            tetrisBoard = Array(TETRIS_ROWS).fill(0).map(() => Array(TETRIS_COLS).fill(0));
-        }
-
-        function tetrisGenerateRandomPiece() {
-            const randKey = TETROMINO_KEYS[Math.floor(Math.random() * TETROMINO_KEYS.length)];
-            const shape = TETROMINOS[randKey];
-            const colorIndex = TETROMINO_KEYS.indexOf(randKey) + 1;
-            return {
-                shape: shape,
-                color: colorIndex,
-                x: Math.floor(TETRIS_COLS / 2) - Math.floor(shape[0].length / 2),
-                y: 0
+            const cerrarModales = () => {
+                document.querySelectorAll('.modal-background').forEach(modal => modal.classList.remove('visible'));
             };
-        }
 
-        function tetrisDrawBlock(ctx, x, y, color) {
-            if (color === 0) return; 
-            ctx.fillStyle = TETRIS_COLORS[color];
-            ctx.fillRect(x * TETRIS_BLOCK_SIZE, y * TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE);
-            ctx.strokeStyle = '#222';
-            ctx.strokeRect(x * TETRIS_BLOCK_SIZE, y * TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE, TETRIS_BLOCK_SIZE);
-        }
-
-        function tetrisDrawBoard() {
-            for (let r = 0; r < TETRIS_ROWS; r++) {
-                for (let c = 0; c < TETRIS_COLS; c++) {
-                    tetrisDrawBlock(tetrisCtx, c, r, tetrisBoard[r][c]);
-                }
-            }
-        }
-
-        function tetrisDrawPiece(ctx, piece) {
-            piece.shape.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value !== 0) {
-                        tetrisDrawBlock(ctx, piece.x + c, piece.y + r, piece.color);
-                    }
+            document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', cerrarModales));
+            document.querySelectorAll('.modal-background').forEach(modal => {
+                modal.addEventListener('click', e => {
+                    if (e.target === modal) cerrarModales();
                 });
             });
-        }
-
-        function tetrisDrawNextPiece() {
-            tetrisNextCtx.clearRect(0, 0, tetrisNextPieceCanvas.width, tetrisNextPieceCanvas.height);
-            tetrisNextCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tetris-score-bg');
-            tetrisNextCtx.fillRect(0,0, tetrisNextPieceCanvas.width, tetrisNextPieceCanvas.height);
-
-            const nextBlockSize = tetrisNextPieceCanvas.width / 4; 
-            const piece = tetrisNextPiece;
-            const startX = (tetrisNextPieceCanvas.width - piece.shape[0].length * nextBlockSize) / 2 / nextBlockSize;
-            const startY = (tetrisNextPieceCanvas.height - piece.shape.length * nextBlockSize) / 2 / nextBlockSize;
-
-            piece.shape.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value !== 0) {
-                        tetrisNextCtx.fillStyle = TETRIS_COLORS[piece.color];
-                        tetrisNextCtx.fillRect((startX + c) * nextBlockSize, (startY + r) * nextBlockSize, nextBlockSize, nextBlockSize);
-                        tetrisNextCtx.strokeStyle = '#222';
-                        tetrisNextCtx.strokeRect((startX + c) * nextBlockSize, (startY + r) * nextBlockSize, nextBlockSize, nextBlockSize);
-                    }
-                });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') cerrarModales();
             });
-        }
 
-        function tetrisCheckCollision(piece, offsetX, offsetY) {
-            for (let r = 0; r < piece.shape.length; r++) {
-                for (let c = 0; c < piece.shape[r].length; c++) {
-                    if (piece.shape[r][c] !== 0) {
-                        const newX = piece.x + c + offsetX;
-                        const newY = piece.y + r + offsetY;
+            generarCalendario();
 
-                        if (newX < 0 || newX >= TETRIS_COLS || newY >= TETRIS_ROWS) {
-                            return true; 
-                        }
-                        if (newY < 0) { 
-                            continue;
-                        }
-                        if (tetrisBoard[newY][newX] !== 0) {
-                            return true; 
-                        }
-                    }
+            // --- LÓGICA DEL JUEGO DE SNAKE ---
+            const snakeBoard = document.getElementById('snake-game-board');
+            const snakeCtx = snakeBoard.getContext('2d');
+            const snakeBackgroundCanvas = document.getElementById('snake-background-canvas'); 
+            const snakeBackgroundCtx = snakeBackgroundCanvas.getContext('2d'); 
+            const snakeScoreDisplay = document.getElementById('snake-score');
+            const snakePersonalBestDisplay = document.getElementById('snake-personal-best');
+            const snakeGameOverText = document.getElementById('snake-gameOverText');
+            const snakeRestartBtn = document.getElementById('snake-restart-btn');
+
+            const snakeGridSize = 20;
+            let snake = [{
+                x: 10,
+                y: 10
+            }];
+            let snakeApples = [];
+            let snakeDx = 0,
+                snakeDy = 0;
+            let snakeScore = 0;
+            let isSnakeGameOver = false;
+            let snakeGameLoop;
+
+            let snakeInitialTickRate = 150;
+            let snakeTickRate = snakeInitialTickRate;
+            let lastMoveTime = 0;
+            const SPEED_INCREASE_INTERVAL = 5;
+            const SPEED_DECREASE_AMOUNT = 5;
+
+            let touchStartX = 0,
+                touchStartY = 0;
+            const SWIPE_THRESHOLD = 20;
+            let snakePersonalBest = parseInt(localStorage.getItem('snakePersonalBest')) || 0;
+
+            const updateSnakePersonalBest = () => {
+                snakePersonalBestDisplay.textContent = snakePersonalBest;
+            };
+
+            const checkAndUpdateSnakePersonalBest = () => {
+                if (snakeScore > snakePersonalBest) {
+                    snakePersonalBest = snakeScore;
+                    localStorage.setItem('snakePersonalBest', snakePersonalBest);
+                    updateSnakePersonalBest();
                 }
-            }
-            return false;
-        }
+            };
 
-        function tetrisMergePiece() {
-            tetrisCurrentPiece.shape.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value !== 0) {
-                        tetrisBoard[tetrisCurrentPiece.y + r][tetrisCurrentPiece.x + c] = tetrisCurrentPiece.color;
-                    }
-                });
+            snakeBoard.addEventListener('touchstart', e => {
+                if (isSnakeGameOver) return;
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, {
+                passive: true
             });
-        }
 
-        function tetrisClearLines() {
-            let linesCleared = 0;
-            for (let r = TETRIS_ROWS - 1; r >= 0; r--) {
-                if (tetrisBoard[r].every(cell => cell !== 0)) {
-                    linesCleared++;
-                    tetrisBoard.splice(r, 1); 
-                    tetrisBoard.unshift(Array(TETRIS_COLS).fill(0)); 
-                    r++; 
+            snakeBoard.addEventListener('touchmove', e => {
+                if (isSnakeGameOver) return;
+                e.preventDefault();
+            }, {
+                passive: false
+            });
+
+            snakeBoard.addEventListener('touchend', e => {
+                if (isSnakeGameOver) return;
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (Math.abs(dx) > SWIPE_THRESHOLD) {
+                        if (dx > 0) cambiarSnakeDireccion('right');
+                        else cambiarSnakeDireccion('left');
+                    }
+                } else {
+                    if (Math.abs(dy) > SWIPE_THRESHOLD) {
+                        if (dy > 0) cambiarSnakeDireccion('down');
+                        else cambiarSnakeDireccion('up');
+                    }
                 }
+            });
+
+            const toRadians = (angle) => angle * (Math.PI / 180);
+
+            const generarSnakeManzana = () => {
+                let newApplePos;
+                do {
+                    newApplePos = {
+                        x: Math.floor(Math.random() * (snakeBoard.width / snakeGridSize)),
+                        y: Math.floor(Math.random() * (snakeBoard.height / snakeGridSize))
+                    };
+                } while (snake.some(part => part.x === newApplePos.x && part.y === newApplePos.y) ||
+                    snakeApples.some(apple => apple.x === newApplePos.x && apple.y === newApplePos.y));
+                return newApplePos;
+            };
+
+            // Función para dibujar un bloque de pixel art
+            function drawPixelBlock(ctx, x, y, size, color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, size, size);
             }
-            if (linesCleared > 0) {
-                tetrisScore += [0, 100, 300, 500, 800][linesCleared]; 
-                tetrisScoreDisplay.textContent = tetrisScore;
-                
-                const newLevel = Math.floor(tetrisScore / 1000) + 1; 
-                if (newLevel > tetrisLevel) {
-                    tetrisLevel = newLevel;
-                    tetrisLevelDisplay.textContent = tetrisLevel;
-                    tetrisDropInterval = Math.max(100, tetrisDropInterval - 50); 
-                    clearInterval(tetrisGameLoop);
-                    tetrisGameLoop = setInterval(tetrisMainLoop, tetrisDropInterval);
+
+            // Función de interpolación de color
+            function interpolateColor(color1, color2, factor) {
+                const r1 = parseInt(color1.substring(1, 3), 16);
+                const g1 = parseInt(color1.substring(3, 5), 16);
+                const b1 = parseInt(color1.substring(5, 7), 16);
+
+                const r2 = parseInt(color2.substring(1, 3), 16);
+                const g2 = parseInt(color2.substring(3, 5), 16);
+                const b2 = parseInt(color2.substring(5, 7), 16);
+
+                const r = Math.round(r1 + factor * (r2 - r1));
+                const g = Math.round(g1 + factor * (g2 - g1));
+                const b = Math.round(b1 + factor * (b2 - b1));
+
+                return '#' + (r < 16 ? '0' : '') + r.toString(16) +
+                           (g < 16 ? '0' : '') + g.toString(16) +
+                           (b < 16 ? '0' : '') + b.toString(16);
+            }
+
+            // Fondo para el canvas interno de Snake (Outrun/Synthwave)
+            function drawSnakeBackground() {
+                const bgWidth = snakeBoard.width;
+                const bgHeight = snakeBoard.height;
+                snakeBackgroundCanvas.width = bgWidth;
+                snakeBackgroundCanvas.height = bgHeight;
+                snakeBackgroundCtx.clearRect(0, 0, bgWidth, bgHeight);
+
+                const pixelSize = 10; // Base para el tamaño de los elementos pixelados
+
+                // Colores inspirados en Outrun
+                const skyTop = '#3a1e5a'; // Morado oscuro
+                const skyMid = '#8a2a7e'; // Magenta
+                const skyHorizon = '#ff458a'; // Rosa fuerte
+                const groundColor = '#2a5a3a'; // Verde oscuro para el suelo
+                const mountainColorDark = '#4b3e8a'; // Azul-púrpura oscuro
+                const mountainColorLight = '#7e5ac0'; // Púrpura más claro
+                const treeColor = '#1a4a2a'; // Verde muy oscuro para los árboles de fondo
+
+                // Dibujar cielo con degradado Outrun
+                for (let y = 0; y < bgHeight; y += pixelSize) {
+                    const ratio = y / bgHeight;
+                    let color;
+                    if (ratio < 0.4) {
+                        color = interpolateColor(skyTop, skyMid, ratio / 0.4);
+                    } else {
+                        color = interpolateColor(skyMid, skyHorizon, (ratio - 0.4) / 0.6);
+                    }
+                    for (let x = 0; x < bgWidth; x += pixelSize) {
+                        drawPixelBlock(snakeBackgroundCtx, x, y, pixelSize, color);
+                    }
                 }
-            }
-        }
 
-        function tetrisMovePiece(dx, dy) {
-            if (!tetrisCheckCollision(tetrisCurrentPiece, dx, dy)) {
-                tetrisCurrentPiece.x += dx;
-                tetrisCurrentPiece.y += dy;
-                tetrisDrawGame();
-                return true;
-            }
-            return false;
-        }
+                // Dibujar el sol retro centrado y a la mitad
+                const sunRadius = Math.min(bgWidth, bgHeight) * 0.3; // Más grande
+                const sunCenterX = bgWidth / 2;
+                const sunCenterY = bgHeight * 0.7; // Posición para que la mitad esté "fuera" del suelo
 
-        function tetrisRotatePiece(direction) { 
-            const originalShape = tetrisCurrentPiece.shape;
-            const rotatedShape = Array(originalShape[0].length).fill(0).map(() => Array(originalShape.length).fill(0));
+                snakeBackgroundCtx.save();
+                snakeBackgroundCtx.beginPath();
+                snakeBackgroundCtx.arc(sunCenterX, sunCenterY, sunRadius, 0, Math.PI * 2);
+                snakeBackgroundCtx.clip(); // Recortar el sol para las líneas
+
+                snakeBackgroundCtx.fillStyle = '#ffc000'; // Color del sol
+                snakeBackgroundCtx.fillRect(sunCenterX - sunRadius, sunCenterY - sunRadius, sunRadius * 2, sunRadius * 2);
+
+                // Líneas horizontales del sol
+                const numLines = 10;
+                const lineHeight = sunRadius / numLines;
+                snakeBackgroundCtx.fillStyle = '#ff458a'; // Color rosa para las líneas
+                for (let i = 0; i < numLines; i++) {
+                    const yLine = sunCenterY + lineHeight * (i - numLines / 2);
+                    snakeBackgroundCtx.fillRect(sunCenterX - sunRadius, yLine, sunRadius * 2, lineHeight * 0.5); // Líneas más finas
+                }
+                snakeBackgroundCtx.restore();
+
+                // Dibujar el suelo
+                const groundHeight = Math.floor(bgHeight * 0.3);
+                for (let y = bgHeight - groundHeight; y < bgHeight; y += pixelSize) {
+                    for (let x = 0; x < bgWidth; x += pixelSize) {
+                        drawPixelBlock(snakeBackgroundCtx, x, y, pixelSize, groundColor);
+                    }
+                }
+
+                // Dibujar montañas geométricas (reemplazando árboles)
+                const mountainBaseY = bgHeight - groundHeight;
+                const mountainPeakY = mountainBaseY - bgHeight * 0.25;
+
+                // Montaña 1 (izquierda)
+                snakeBackgroundCtx.fillStyle = mountainColorDark;
+                snakeBackgroundCtx.beginPath();
+                snakeBackgroundCtx.moveTo(0, mountainBaseY);
+                snakeBackgroundCtx.lineTo(bgWidth * 0.3, mountainPeakY);
+                snakeBackgroundCtx.lineTo(bgWidth * 0.6, mountainBaseY);
+                snakeBackgroundCtx.closePath();
+                snakeBackgroundCtx.fill();
+
+                // Montaña 2 (centro-derecha)
+                snakeBackgroundCtx.fillStyle = mountainColorLight;
+                snakeBackgroundCtx.beginPath();
+                snakeBackgroundCtx.moveTo(bgWidth * 0.4, mountainBaseY);
+                snakeBackgroundCtx.lineTo(bgWidth * 0.7, mountainPeakY + bgHeight * 0.05); // Pico ligeramente más bajo
+                snakeBackgroundCtx.lineTo(bgWidth, mountainBaseY);
+                snakeBackgroundCtx.closePath();
+                snakeBackgroundCtx.fill();
+
+                // Pequeños árboles en la parte más baja del suelo (opcional, para mantener algo de follaje)
+                const smallTreeHeight = pixelSize * 2;
+                const smallTreeWidth = pixelSize * 2;
+                const smallTreesData = [
+                    { x: bgWidth * 0.1, y: bgHeight - pixelSize },
+                    { x: bgWidth * 0.3, y: bgHeight - pixelSize },
+                    { x: bgWidth * 0.7, y: bgHeight - pixelSize },
+                    { x: bgWidth * 0.9, y: bgHeight - pixelSize }
+                ];
+                smallTreesData.forEach(tree => {
+                    const treeX = Math.floor(tree.x / pixelSize) * pixelSize;
+                    const treeY = Math.floor(tree.y / pixelSize) * pixelSize;
+                    snakeBackgroundCtx.fillStyle = treeColor;
+                    snakeBackgroundCtx.fillRect(treeX, treeY - smallTreeHeight, smallTreeWidth, smallTreeHeight);
+                    snakeBackgroundCtx.fillRect(treeX + pixelSize * 0.5, treeY - smallTreeHeight - pixelSize, pixelSize, pixelSize); // Pico
+                });
+            }
             
-            if (direction === 1) { 
-                for (let r = 0; r < originalShape.length; r++) {
-                    for (let c = 0; c < originalShape[r].length; c++) {
-                        rotatedShape[c][originalShape.length - 1 - r] = originalShape[r][c];
+            // Puntuación global persistente
+            let globalScore = parseInt(localStorage.getItem('globalScore')) || 0;
+            const updateGlobalScoreDisplay = () => {
+                // Aquí podrías actualizar un puntaje global en otra parte, si existiera.
+                // Para el score de la partida de snake, usaremos snakeScore
+                snakeScoreDisplay.textContent = snakeScore;
+            };
+            updateGlobalScoreDisplay();
+
+
+            // Fondo global para Snake (alrededores) - estilo Outrun/Synthwave
+            function drawGlobalSnakeBackground() {
+                const canvas = globalSnakeBackground;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const pixelSize = 20; // Tamaño de un "pixel" más grande para el fondo global
+
+                // Colores inspirados en Outrun
+                const skyTop = '#2a1a4a'; // Morado muy oscuro
+                const skyMid = '#6a1a6a'; // Magenta oscuro
+                const skyHorizon = '#d03a7a'; // Rosa fuerte
+                const groundColor = '#1a4a2a'; // Verde oscuro para el suelo
+                const mountainColorDark = '#3b2e7a'; // Azul-púrpura oscuro
+                const mountainColorLight = '#6e4ac0'; // Púrpura más claro
+                const treeColor = '#0a3a1a'; // Verde muy oscuro para los árboles de fondo
+
+                // Dibujar cielo con degradado Outrun
+                for (let y = 0; y < canvas.height; y += pixelSize) {
+                    const ratio = y / canvas.height;
+                    let color;
+                    if (ratio < 0.4) {
+                        color = interpolateColor(skyTop, skyMid, ratio / 0.4);
+                    } else {
+                        color = interpolateColor(skyMid, skyHorizon, (ratio - 0.4) / 0.6);
+                    }
+                    for (let x = 0; x < canvas.width; x += pixelSize) {
+                        drawPixelBlock(ctx, x, y, pixelSize, color);
                     }
                 }
-            } else { 
-                 for (let r = 0; r < originalShape.length; r++) {
-                    for (let c = 0; c < originalShape[r].length; c++) {
-                        rotatedShape[originalShape[r].length - 1 - c][r] = originalShape[r][c];
+
+                // Dibujar el sol retro centrado y a la mitad
+                const sunRadius = Math.min(canvas.width, canvas.height) * 0.3; // Más grande
+                const sunCenterX = canvas.width / 2;
+                const sunCenterY = canvas.height * 0.7; // Posición para que la mitad esté "fuera" del suelo
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(sunCenterX, sunCenterY, sunRadius, 0, Math.PI * 2);
+                ctx.clip(); // Recortar el sol para las líneas
+
+                ctx.fillStyle = '#ffc000'; // Color del sol
+                ctx.fillRect(sunCenterX - sunRadius, sunCenterY - sunRadius, sunRadius * 2, sunRadius * 2);
+
+                // Líneas horizontales del sol
+                const numLines = 10;
+                const lineHeight = sunRadius / numLines;
+                ctx.fillStyle = '#ff458a'; // Color rosa para las líneas
+                for (let i = 0; i < numLines; i++) {
+                    const yLine = sunCenterY + lineHeight * (i - numLines / 2);
+                    ctx.fillRect(sunCenterX - sunRadius, yLine, sunRadius * 2, lineHeight * 0.5); // Líneas más finas
+                }
+                ctx.restore();
+
+                // Dibujar el suelo
+                const groundHeight = Math.floor(canvas.height * 0.3);
+                for (let y = canvas.height - groundHeight; y < canvas.height; y += pixelSize) {
+                    for (let x = 0; x < canvas.width; x += pixelSize) {
+                        drawPixelBlock(ctx, x, y, pixelSize, groundColor);
                     }
                 }
+
+                // Dibujar montañas geométricas (reemplazando árboles)
+                const mountainBaseY = canvas.height - groundHeight;
+                const mountainPeakY = mountainBaseY - canvas.height * 0.25;
+
+                // Montaña 1 (izquierda)
+                ctx.fillStyle = mountainColorDark;
+                ctx.beginPath();
+                ctx.moveTo(0, mountainBaseY);
+                ctx.lineTo(canvas.width * 0.3, mountainPeakY);
+                ctx.lineTo(canvas.width * 0.6, mountainBaseY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Montaña 2 (centro-derecha)
+                ctx.fillStyle = mountainColorLight;
+                ctx.beginPath();
+                ctx.moveTo(canvas.width * 0.4, mountainBaseY);
+                ctx.lineTo(canvas.width * 0.7, mountainPeakY + canvas.height * 0.05); // Pico ligeramente más bajo
+                ctx.lineTo(canvas.width, mountainBaseY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Pequeños árboles en la parte más baja del suelo (opcional, para mantener algo de follaje)
+                const smallTreeHeight = pixelSize * 2;
+                const smallTreeWidth = pixelSize * 2;
+                const smallTreesData = [
+                    { x: canvas.width * 0.1, y: canvas.height - pixelSize },
+                    { x: canvas.width * 0.3, y: canvas.height - pixelSize },
+                    { x: canvas.width * 0.7, y: canvas.height - pixelSize },
+                    { x: canvas.width * 0.9, y: canvas.height - pixelSize }
+                ];
+                smallTreesData.forEach(tree => {
+                    const treeX = Math.floor(tree.x / pixelSize) * pixelSize;
+                    const treeY = Math.floor(tree.y / pixelSize) * pixelSize;
+                    ctx.fillStyle = treeColor;
+                    ctx.fillRect(treeX, treeY - smallTreeHeight, smallTreeWidth, smallTreeHeight);
+                    ctx.fillRect(treeX + pixelSize * 0.5, treeY - smallTreeHeight - pixelSize, pixelSize, pixelSize); // Pico
+                });
             }
 
-            const originalX = tetrisCurrentPiece.x;
-            const originalY = tetrisCurrentPiece.y;
-            tetrisCurrentPiece.shape = rotatedShape;
 
-            const kicks = [0, -1, 1, -2, 2]; 
-            for (let i = 0; i < kicks.length; i++) {
-                tetrisCurrentPiece.x = originalX + kicks[i];
-                if (!tetrisCheckCollision(tetrisCurrentPiece, 0, 0)) {
-                    tetrisDrawGame();
+            const dibujarSnake = () => {
+                snakeCtx.clearRect(0, 0, snakeBoard.width, snakeBoard.height);
+                // No dibujamos el fondo aquí, ya lo hace el background canvas
+
+                const segmentSize = snakeGridSize;
+                const segmentRadius = segmentSize / 2;
+
+                snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
+                snakeCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
+
+                for (let i = snake.length - 1; i > 0; i--) {
+                    const currentSegment = snake[i];
+                    const prevSegment = snake[i - 1];
+
+                    const currentX = currentSegment.x * segmentSize + segmentRadius;
+                    const currentY = currentSegment.y * segmentSize + segmentRadius;
+                    const prevX = prevSegment.x * segmentSize + segmentRadius;
+                    const prevY = prevSegment.y * segmentSize + segmentRadius;
+
+                    snakeCtx.beginPath();
+                    snakeCtx.moveTo(prevX, prevY);
+                    snakeCtx.lineTo(currentX, currentY);
+                    snakeCtx.lineCap = 'round';
+                    snakeCtx.lineJoin = 'round';
+                    snakeCtx.lineWidth = segmentSize;
+                    snakeCtx.stroke();
+                }
+
+                const head = snake[0];
+                const headCenterX = head.x * segmentSize + segmentRadius;
+                const headCenterY = head.y * segmentSize + segmentRadius;
+
+                snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
+                snakeCtx.beginPath();
+                snakeCtx.arc(headCenterX, headCenterY, segmentRadius, 0, Math.PI * 2);
+                snakeCtx.fill();
+
+
+                // Dibujar ojos estáticos según la dirección
+                const eyeSize = segmentRadius * 0.25; // Tamaño del ojo
+                const pupilSize = eyeSize * 0.5; // Tamaño de la pupila
+                const eyeOffset = segmentRadius * 0.35; // Distancia de los ojos al centro de la cabeza
+
+                let eye1X, eye1Y, eye2X, eye2Y;
+                let pupil1X, pupil1Y, pupil2X, pupil2Y;
+
+                // Ajustar posición de los ojos y pupilas según la dirección de la serpiente
+                if (snakeDx === 1) { // Derecha
+                    eye1X = headCenterX + eyeOffset; eye1Y = headCenterY - eyeOffset;
+                    eye2X = headCenterX + eyeOffset; eye2Y = headCenterY + eyeOffset;
+                    pupil1X = eye1X + eyeSize * 0.3; pupil1Y = eye1Y;
+                    pupil2X = eye2X + eyeSize * 0.3; pupil2Y = eye2Y;
+                } else if (snakeDx === -1) { // Izquierda
+                    eye1X = headCenterX - eyeOffset; eye1Y = headCenterY - eyeOffset;
+                    eye2X = headCenterX - eyeOffset; eye2Y = headCenterY + eyeOffset;
+                    pupil1X = eye1X - eyeSize * 0.3; pupil1Y = eye1Y;
+                    pupil2X = eye2X - eyeSize * 0.3; pupil2Y = eye2Y;
+                } else if (snakeDy === 1) { // Abajo
+                    eye1X = headCenterX - eyeOffset; eye1Y = headCenterY + eyeOffset;
+                    eye2X = headCenterX + eyeOffset; eye2Y = headCenterY + eyeOffset;
+                    pupil1X = eye1X; pupil1Y = eye1Y + eyeSize * 0.3;
+                    pupil2X = eye2X; pupil2Y = eye2Y + eyeSize * 0.3;
+                } else { // Arriba (snakeDy === -1)
+                    eye1X = headCenterX - eyeOffset; eye1Y = headCenterY - eyeOffset;
+                    eye2X = headCenterX + eyeOffset; eye2Y = headCenterY - eyeOffset;
+                    pupil1X = eye1X; pupil1Y = eye1Y - eyeSize * 0.3;
+                    pupil2X = eye2X; pupil2Y = eye2Y - eyeSize * 0.3;
+                }
+
+                // Dibujar el primer ojo
+                snakeCtx.fillStyle = 'white';
+                snakeCtx.beginPath();
+                snakeCtx.arc(eye1X, eye1Y, eyeSize, 0, Math.PI * 2);
+                snakeCtx.fill();
+                snakeCtx.fillStyle = 'black';
+                snakeCtx.beginPath();
+                snakeCtx.arc(pupil1X, pupil1Y, pupilSize, 0, Math.PI * 2);
+                snakeCtx.fill();
+
+                // Dibujar el segundo ojo
+                snakeCtx.fillStyle = 'white';
+                snakeCtx.beginPath();
+                snakeCtx.arc(eye2X, eye2Y, eyeSize, 0, Math.PI * 2);
+                snakeCtx.fill();
+                snakeCtx.fillStyle = 'black';
+                snakeCtx.beginPath();
+                snakeCtx.arc(pupil2X, pupil2Y, pupilSize, 0, Math.PI * 2);
+                snakeCtx.fill();
+
+                snakeApples.forEach(apple => {
+                    const appleCenterX = apple.x * segmentSize + segmentRadius;
+                    const appleCenterY = apple.y * segmentSize + segmentRadius;
+
+                    snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple-color');
+                    snakeCtx.beginPath();
+                    snakeCtx.arc(appleCenterX, appleCenterY, segmentRadius * 0.8, 0, Math.PI * 2);
+                    snakeCtx.fill();
+                    snakeCtx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    snakeCtx.lineWidth = 1;
+                    snakeCtx.stroke();
+
+                    snakeCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple-leaf-color');
+                    snakeCtx.beginPath();
+                    const leafX = appleCenterX + segmentRadius * 0.3;
+                    const leafY = appleCenterY - segmentRadius * 0.7;
+                    snakeCtx.ellipse(leafX, leafY, segmentRadius * 0.3, segmentRadius * 0.15, -Math.PI / 4, 0, Math.PI * 2);
+                    snakeCtx.fill();
+                });
+            };
+
+            const moverSnakeSerpiente = () => {
+                if (isSnakeGameOver) return;
+
+                const head = snake[0];
+                const newHeadX = head.x + snakeDx;
+                const newHeadY = head.y + snakeDy;
+
+                const newHead = {
+                    x: newHeadX,
+                    y: newHeadY
+                };
+                snake.unshift(newHead);
+
+                let ateApple = false;
+                for (let i = 0; i < snakeApples.length; i++) {
+                    if (newHeadX === snakeApples[i].x && newHeadY === snakeApples[i].y) {
+                        snakeScore += 1;
+                        updateGlobalScoreDisplay();
+
+                        snakeApples.splice(i, 1);
+                        snakeApples.push(generarSnakeManzana());
+
+                        if (snakeScore >= 50 && snakeApples.length < 2) {
+                            snakeApples.push(generarSnakeManzana());
+                        }
+
+                        if (snakeScore % SPEED_INCREASE_INTERVAL === 0) {
+                            snakeTickRate = Math.max(50, snakeTickRate - SPEED_DECREASE_AMOUNT);
+                            console.log("Velocidad Snake aumentada. Nuevo tickRate:", snakeTickRate);
+                        }
+                        ateApple = true;
+                        break;
+                    }
+                }
+
+                if (!ateApple) {
+                    snake.pop();
+                }
+            };
+
+            const chequearSnakeColision = () => {
+                const cabeza = snake[0];
+                if (cabeza.x < 0 || cabeza.x >= snakeBoard.width / snakeGridSize || cabeza.y < 0 || cabeza.y >= snakeBoard.height / snakeGridSize) {
+                    return true;
+                }
+                for (let i = 1; i < snake.length; i++) {
+                    if (cabeza.x === snake[i].x && cabeza.y === snake[i].y) return true;
+                }
+                return false;
+            };
+
+            const mainSnakeLoop = (currentTime) => {
+                if (isSnakeGameOver) {
                     return;
                 }
+
+                snakeGameLoop = requestAnimationFrame(mainSnakeLoop);
+
+                if (currentTime - lastMoveTime > snakeTickRate) {
+                    lastMoveTime = currentTime;
+                    moverSnakeSerpiente();
+                    if (chequearSnakeColision()) {
+                        isSnakeGameOver = true;
+                        snakeGameOverText.style.display = 'block';
+                        snakeRestartBtn.style.display = 'block';
+                        checkAndUpdateSnakePersonalBest(); // Guardar el puntaje al terminar
+                        cancelAnimationFrame(snakeGameLoop);
+                        return;
+                    }
+                }
+                dibujarSnake();
+            };
+
+            const cambiarSnakeDireccion = (direccion) => {
+                if (isSnakeGameOver) return;
+
+                const ARRIBA = snakeDy === -1;
+                const ABAJO = snakeDy === 1;
+                const DERECHA = snakeDx === 1;
+                const IZQUIERDA = snakeDx === -1;
+
+                if (direccion === "up" && !ABAJO) {
+                    snakeDx = 0;
+                    snakeDy = -1;
+                } else if (direccion === "down" && !ARRIBA) {
+                    snakeDx = 0;
+                    snakeDy = 1;
+                } else if (direccion === "left" && !DERECHA) {
+                    snakeDx = -1;
+                    snakeDy = 0;
+                } else if (direccion === "right" && !IZQUIERDA) {
+                    snakeDx = 1;
+                    snakeDy = 0;
+                }
+            };
+
+
+            const iniciarSnakeGame = () => {
+                document.getElementById('snake-instructions').style.display = 'none';
+                if (window.innerWidth <= 600) {
+                    snakeBoard.width = 300;
+                    snakeBoard.height = 300;
+                    snakeBackgroundCanvas.width = 300;
+                    snakeBackgroundCanvas.height = 300;
+                } else {
+                    snakeBoard.width = 400;
+                    snakeBoard.height = 400;
+                    snakeBackgroundCanvas.width = 400;
+                    snakeBackgroundCanvas.height = 400;
+                }
+                drawSnakeBackground(); // Redibujar el fondo con las nuevas dimensiones si es necesario
+                drawGlobalSnakeBackground();
+
+                snake = [{
+                    x: 10,
+                    y: 10
+                }];
+                snakeDx = 1;
+                snakeDy = 0;
+                snakeScore = 0; // Puntuación local del juego
+                snakeScoreDisplay.textContent = snakeScore; // Reiniciar el display
+                snakeTickRate = snakeInitialTickRate;
+                isSnakeGameOver = false;
+                snakeGameOverText.style.display = 'none';
+                snakeRestartBtn.style.display = 'none';
+                updateSnakePersonalBest();
+
+                snakeApples = [];
+                snakeApples.push(generarSnakeManzana());
+
+                lastMoveTime = performance.now();
+                cancelAnimationFrame(snakeGameLoop);
+                snakeGameLoop = requestAnimationFrame(mainSnakeLoop);
+            };
+            document.querySelector('#snake-instructions .start-game-btn').addEventListener('click', iniciarSnakeGame);
+            snakeRestartBtn.addEventListener('click', iniciarSnakeGame);
+
+            document.addEventListener('keydown', e => {
+                if (currentGame !== 'snake' || isSnakeGameOver) return;
+                const key = e.key;
+                if (key === 'ArrowUp' || key === 'w') cambiarSnakeDireccion('up');
+                if (key === 'ArrowDown' || key === 's') cambiarSnakeDireccion('down');
+                if (key === 'ArrowLeft' || key === 'a') cambiarSnakeDireccion('left');
+                if (key === 'ArrowRight' || key === 'd') cambiarSnakeDireccion('right');
+            });
+
+
+            // --- LÓGICA DEL JUEGO DE TETRIS ---
+            const tetrisCanvas = document.getElementById('tetris-canvas');
+            const tetrisCtx = tetrisCanvas.getContext('2d');
+            const tetrisBackgroundCanvas = document.getElementById('tetris-background-canvas'); // Nuevo canvas de fondo para Tetris
+            const tetrisBackgroundCtx = tetrisBackgroundCanvas.getContext('2d'); // Nuevo contexto de fondo para Tetris
+            const tetrisNextPieceCanvas = document.getElementById('tetris-next-piece-canvas');
+            const tetrisNextCtx = tetrisNextPieceCanvas.getContext('2d');
+            const tetrisScoreDisplay = document.getElementById('tetris-score');
+            const tetrisLevelDisplay = document.getElementById('tetris-level');
+            const tetrisGameOverText = document.getElementById('tetris-gameOverText');
+            const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
+            const tetrisPbScoreDisplay = document.getElementById('tetris-pb-score');
+            const tetrisPbLevelDisplay = document.getElementById('tetris-pb-level');
+
+            document.getElementById('tetris-rotate-left').addEventListener('click', () => {
+                if (!isTetrisGameOver) tetrisRotatePiece(-1);
+            });
+            document.getElementById('tetris-rotate-right').addEventListener('click', () => {
+                if (!isTetrisGameOver) tetrisRotatePiece(1);
+            });
+            document.getElementById('tetris-move-left').addEventListener('click', () => {
+                if (!isTetrisGameOver) tetrisMovePiece(-1, 0);
+            });
+            document.getElementById('tetris-move-right').addEventListener('click', () => {
+                if (!isTetrisGameOver) tetrisMovePiece(1, 0);
+            });
+            document.getElementById('tetris-soft-drop').addEventListener('click', () => {
+                if (!isTetrisGameOver) tetrisSoftDrop();
+            });
+            document.getElementById('tetris-hard-drop').addEventListener('click', () => {
+                if (!isTetrisGameOver) tetrisHardDrop();
+            });
+
+
+            const TETRIS_ROWS = 20;
+            const TETRIS_COLS = 10;
+            const TETRIS_BLOCK_SIZE = tetrisCanvas.width / TETRIS_COLS;
+            const TETRIS_COLORS = [
+                null,
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-I'),
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-J'),
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-L'),
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-O'),
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-S'),
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-T'),
+                getComputedStyle(document.documentElement).getPropertyValue('--tetris-color-Z')
+            ];
+
+            let tetrisBoard = [];
+            let tetrisCurrentPiece;
+            let tetrisNextPiece;
+            let tetrisScore = 0;
+            let tetrisLevel = 1;
+            let tetrisDropInterval = 1000;
+            let tetrisGameLoop;
+            let isTetrisGameOver = false;
+
+            let tetrisPersonalBest = JSON.parse(localStorage.getItem('tetrisPersonalBest')) || { score: 0, level: 0 };
+
+            const updateTetrisPersonalBest = () => {
+                tetrisPbScoreDisplay.textContent = tetrisPersonalBest.score;
+                tetrisPbLevelDisplay.textContent = tetrisPersonalBest.level;
+            };
+
+            const checkAndUpdateTetrisPersonalBest = () => {
+                if (tetrisScore > tetrisPersonalBest.score) {
+                    tetrisPersonalBest.score = tetrisScore;
+                    tetrisPersonalBest.level = tetrisLevel;
+                    localStorage.setItem('tetrisPersonalBest', JSON.stringify(tetrisPersonalBest));
+                    updateTetrisPersonalBest();
+                } else if (tetrisScore === tetrisPersonalBest.score && tetrisLevel > tetrisPersonalBest.level) {
+                    tetrisPersonalBest.level = tetrisLevel;
+                    localStorage.setItem('tetrisPersonalBest', JSON.stringify(tetrisPersonalBest));
+                    updateTetrisPersonalBest();
+                }
+            };
+
+            const TETROMINOS_SHAPES = {
+                'I': [
+                    [0, 0, 0, 0],
+                    [1, 1, 1, 1],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0]
+                ],
+                'J': [
+                    [2, 0, 0],
+                    [2, 2, 2],
+                    [0, 0, 0]
+                ],
+                'L': [
+                    [0, 0, 3],
+                    [3, 3, 3],
+                    [0, 0, 0]
+                ],
+                'O': [
+                    [4, 4],
+                    [4, 4]
+                ],
+                'S': [
+                    [0, 5, 5],
+                    [5, 5, 0],
+                    [0, 0, 0]
+                ],
+                'T': [
+                    [0, 6, 0],
+                    [6, 6, 6],
+                    [0, 0, 0]
+                ],
+                'Z': [
+                    [7, 7, 0],
+                    [0, 7, 7],
+                    [0, 0, 0]
+                ]
+            };
+
+            const TETROMINO_KEYS = Object.keys(TETROMINOS_SHAPES);
+
+            function tetrisCreateBoard() {
+                tetrisBoard = Array(TETRIS_ROWS).fill(0).map(() => Array(TETRIS_COLS).fill(0));
+            }
+
+            function tetrisGenerateRandomPiece() {
+                const randKey = TETROMINO_KEYS[Math.floor(Math.random() * TETROMINO_KEYS.length)];
+                const shape = TETROMINOS_SHAPES[randKey];
+                const colorIndex = TETROMINO_KEYS.indexOf(randKey) + 1;
+                return {
+                    shape: shape,
+                    color: colorIndex,
+                    x: Math.floor(TETRIS_COLS / 2) - Math.floor(shape[0].length / 2),
+                    y: 0
+                };
+            }
+
+            function tetrisDrawBlock(ctx, x, y, color, blockSize = TETRIS_BLOCK_SIZE) {
+                if (color === 0) return;
+                ctx.fillStyle = TETRIS_COLORS[color];
+                ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                ctx.strokeStyle = '#222';
+                ctx.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
+            }
+
+            function tetrisDrawBoard() {
+                for (let r = 0; r < TETRIS_ROWS; r++) {
+                    for (let c = 0; c < TETRIS_COLS; c++) {
+                        tetrisDrawBlock(tetrisCtx, c, r, tetrisBoard[r][c]);
+                    }
+                }
             }
             
-            tetrisCurrentPiece.shape = originalShape;
-            tetrisCurrentPiece.x = originalX;
-            tetrisCurrentPiece.y = originalY;
-        }
+            function tetrisDrawShadowPiece() {
+                const shadowPosition = getDropPosition();
+                if (shadowPosition) {
+                    tetrisBackgroundCtx.clearRect(0, 0, tetrisBackgroundCanvas.width, tetrisBackgroundCanvas.height);
+                    const blockSize = TETRIS_BLOCK_SIZE;
+                    tetrisBackgroundCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tetris-shadow-color');
 
-        function tetrisSoftDrop() {
-            tetrisMovePiece(0, 1);
-        }
-
-        function tetrisHardDrop() {
-            while (tetrisMovePiece(0, 1)) { }
-            tetrisLockPiece();
-        }
-
-        function tetrisLockPiece() {
-            tetrisMergePiece();
-            tetrisClearLines();
-            tetrisCurrentPiece = tetrisNextPiece;
-            tetrisNextPiece = tetrisGenerateRandomPiece();
-            tetrisDrawNextPiece();
-
-            if (tetrisCheckCollision(tetrisCurrentPiece, 0, 0)) {
-                isTetrisGameOver = true;
-                clearInterval(tetrisGameLoop);
-                tetrisGameOverText.style.display = 'block';
-                tetrisCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                tetrisCtx.fillRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+                    tetrisCurrentPiece.shape.forEach((row, r) => {
+                        row.forEach((value, c) => {
+                            if (value !== 0) {
+                                tetrisBackgroundCtx.fillRect((shadowPosition.x + c) * blockSize, (shadowPosition.y + r) * blockSize, blockSize, blockSize);
+                            }
+                        });
+                    });
+                }
             }
-            tetrisDrawGame();
-        }
+            
+            function getDropPosition() {
+                const piece = JSON.parse(JSON.stringify(tetrisCurrentPiece));
+                while (!tetrisCheckCollision(piece, 0, 1)) {
+                    piece.y++;
+                }
+                return piece;
+            }
 
-        function tetrisMainLoop() {
-            if (isTetrisGameOver) return;
-            if (!tetrisMovePiece(0, 1)) { 
+            // Función para dibujar el fondo de Tetris con piezas aleatorias (interno del juego)
+            function drawTetrisBackground() {
+                tetrisBackgroundCanvas.width = tetrisCanvas.width;
+                tetrisBackgroundCanvas.height = tetrisCanvas.height;
+                tetrisBackgroundCtx.clearRect(0, 0, tetrisBackgroundCanvas.width, tetrisBackgroundCanvas.height);
+
+                const backgroundBlockSize = tetrisBackgroundCanvas.width / TETRIS_COLS;
+                const opacity = 0.3; // Aumentar opacidad para más color
+
+                for (let i = 0; i < 40; i++) { // Más piezas para más densidad
+                    const randKey = TETROMINO_KEYS[Math.floor(Math.random() * TETROMINO_KEYS.length)];
+                    const shape = TETROMINOS_SHAPES[randKey];
+                    const colorIndex = TETROMINO_KEYS.indexOf(randKey) + 1;
+                    const randomColor = TETRIS_COLORS[colorIndex];
+
+                    const pieceX = Math.floor(Math.random() * (TETRIS_COLS - shape[0].length));
+                    const pieceY = Math.floor(Math.random() * (TETRIS_ROWS - shape.length));
+
+                    shape.forEach((row, r) => {
+                        row.forEach((value, c) => {
+                            if (value !== 0) {
+                                tetrisBackgroundCtx.fillStyle = randomColor;
+                                tetrisBackgroundCtx.globalAlpha = opacity;
+                                tetrisBackgroundCtx.fillRect((pieceX + c) * backgroundBlockSize, (pieceY + r) * backgroundBlockSize, backgroundBlockSize, backgroundBlockSize);
+                                tetrisBackgroundCtx.globalAlpha = 1;
+                            }
+                        });
+                    });
+                }
+            }
+
+            // Fondo global para Tetris (alrededores)
+            function drawGlobalTetrisBackground() {
+                const canvas = globalTetrisBackground;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+
+                const backgroundBlockSize = 20; // Tamaño de un "bloque" para el fondo global
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Dibujar piezas en todo el fondo, con más densidad
+                for (let i = 0; i < 200; i++) { // Muchas piezas
+                    const randKey = TETROMINO_KEYS[Math.floor(Math.random() * TETROMINO_KEYS.length)];
+                    const shape = TETROMINOS_SHAPES[randKey];
+                    const colorIndex = TETROMINO_KEYS.indexOf(randKey) + 1;
+                    const randomColor = TETRIS_COLORS[colorIndex];
+
+                    const pieceWidthBlocks = shape[0].length;
+                    const pieceHeightBlocks = shape.length;
+
+                    // Ajustar para que las piezas no salgan del canvas
+                    const pieceX = Math.floor(Math.random() * (canvas.width / backgroundBlockSize - pieceWidthBlocks)) * backgroundBlockSize;
+                    const pieceY = Math.floor(Math.random() * (canvas.height / backgroundBlockSize - pieceHeightBlocks)) * backgroundBlockSize;
+
+                    shape.forEach((row, r) => {
+                        row.forEach((value, c) => {
+                            if (value !== 0) {
+                                ctx.fillStyle = randomColor;
+                                ctx.globalAlpha = 0.6 + Math.random() * 0.3; // Variación de opacidad para profundidad
+                                ctx.fillRect(pieceX + c * backgroundBlockSize, pieceY + r * backgroundBlockSize, backgroundBlockSize, backgroundBlockSize);
+                                ctx.globalAlpha = 1;
+                            }
+                        });
+                    });
+                }
+
+                // Asegurar irregularidades en el último tercio superior
+                const irregularLineY = canvas.height / 3; // Límite del último tercio
+                const irregularityStrength = backgroundBlockSize * 2;
+
+                for (let x = 0; x < canvas.width; x += backgroundBlockSize) {
+                    const offset = Math.random() * irregularityStrength - irregularityStrength / 2; // Desplazamiento aleatorio
+                    const yCutoff = irregularLineY + offset;
+
+                    for (let y = 0; y < yCutoff; y += backgroundBlockSize) {
+                        // Limpiar o hacer más tenue las piezas por encima de la línea irregular
+                        if (Math.random() < 0.8) { // Dejar algunas piezas, pero no tan densas
+                            const randKey = TETROMINO_KEYS[Math.floor(Math.random() * TETROMINO_KEYS.length)];
+                            const shape = TETROMINOS_SHAPES[randKey];
+                            const colorIndex = TETROMINO_KEYS.indexOf(randKey) + 1;
+                            const randomColor = TETRIS_COLORS[colorIndex];
+
+                            const pieceWidthBlocks = shape[0].length;
+                            const pieceHeightBlocks = shape.length;
+
+                            if (x + pieceWidthBlocks * backgroundBlockSize < canvas.width && y + pieceHeightBlocks * backgroundBlockSize < yCutoff) {
+                                shape.forEach((row, r) => {
+                                    row.forEach((value, c) => {
+                                        if (value !== 0) {
+                                            ctx.fillStyle = randomColor;
+                                            ctx.globalAlpha = 0.2 + Math.random() * 0.2; // Menor opacidad
+                                            ctx.fillRect(x + c * backgroundBlockSize, y + r * backgroundBlockSize, backgroundBlockSize, backgroundBlockSize);
+                                            ctx.globalAlpha = 1;
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            function tetrisDrawPiece(ctx, piece, blockSize = TETRIS_BLOCK_SIZE) {
+                piece.shape.forEach((row, r) => {
+                    row.forEach((value, c) => {
+                        if (value !== 0) {
+                            tetrisDrawBlock(ctx, piece.x + c, piece.y + r, piece.color, blockSize);
+                        }
+                    });
+                });
+            }
+
+            function tetrisDrawNextPiece() {
+                tetrisNextCtx.clearRect(0, 0, tetrisNextPieceCanvas.width, tetrisNextPieceCanvas.height);
+                tetrisNextCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tetris-score-bg');
+                tetrisNextCtx.fillRect(0, 0, tetrisNextPieceCanvas.width, tetrisNextPieceCanvas.height);
+
+                const nextBlockSize = tetrisNextPieceCanvas.width / 4;
+                const piece = tetrisNextPiece;
+                const startX = (tetrisNextPieceCanvas.width - piece.shape[0].length * nextBlockSize) / 2 / nextBlockSize;
+                const startY = (tetrisNextPieceCanvas.height - piece.shape.length * nextBlockSize) / 2 / nextBlockSize;
+
+                piece.shape.forEach((row, r) => {
+                    row.forEach((value, c) => {
+                        if (value !== 0) {
+                            tetrisNextCtx.fillStyle = TETRIS_COLORS[piece.color];
+                            tetrisNextCtx.fillRect((startX + c) * nextBlockSize, (startY + r) * nextBlockSize, nextBlockSize, nextBlockSize);
+                            tetrisNextCtx.strokeStyle = '#222';
+                            tetrisNextCtx.strokeRect((startX + c) * nextBlockSize, (startY + r) * nextBlockSize, nextBlockSize, nextBlockSize);
+                        }
+                    });
+                });
+            }
+
+            function tetrisCheckCollision(piece, offsetX, offsetY) {
+                for (let r = 0; r < piece.shape.length; r++) {
+                    for (let c = 0; c < piece.shape[r].length; c++) {
+                        if (piece.shape[r][c] !== 0) {
+                            const newX = piece.x + c + offsetX;
+                            const newY = piece.y + r + offsetY;
+
+                            if (newX < 0 || newX >= TETRIS_COLS || newY >= TETRIS_ROWS) {
+                                return true;
+                            }
+                            if (newY < 0) {
+                                continue;
+                            }
+                            if (tetrisBoard[newY][newX] !== 0) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            function tetrisMergePiece() {
+                tetrisCurrentPiece.shape.forEach((row, r) => {
+                    row.forEach((value, c) => {
+                        if (value !== 0) {
+                            tetrisBoard[tetrisCurrentPiece.y + r][tetrisCurrentPiece.x + c] = tetrisCurrentPiece.color;
+                        }
+                    });
+                });
+            }
+
+            function tetrisClearLines() {
+                let linesCleared = 0;
+                for (let r = TETRIS_ROWS - 1; r >= 0; r--) {
+                    if (tetrisBoard[r].every(cell => cell !== 0)) {
+                        linesCleared++;
+                        tetrisBoard.splice(r, 1);
+                        tetrisBoard.unshift(Array(TETRIS_COLS).fill(0));
+                        r++;
+                    }
+                }
+                if (linesCleared > 0) {
+                    let tetrisGameScore = [0, 100, 300, 500, 800][linesCleared];
+                    tetrisScore += tetrisGameScore;
+                    tetrisScoreDisplay.textContent = tetrisScore;
+
+                    const newLevel = Math.floor(tetrisScore / 1000) + 1;
+                    if (newLevel > tetrisLevel) {
+                        tetrisLevel = newLevel;
+                        tetrisLevelDisplay.textContent = tetrisLevel;
+                        tetrisDropInterval = Math.max(100, tetrisDropInterval - 50);
+                        clearInterval(tetrisGameLoop);
+                        tetrisGameLoop = setInterval(tetrisMainLoop, tetrisDropInterval);
+                    }
+                }
+            }
+
+            function tetrisMovePiece(dx, dy) {
+                if (!tetrisCheckCollision(tetrisCurrentPiece, dx, dy)) {
+                    tetrisCurrentPiece.x += dx;
+                    tetrisCurrentPiece.y += dy;
+                    tetrisDrawGame();
+                    return true;
+                }
+                return false;
+            }
+
+            function tetrisRotatePiece(direction) {
+                const originalShape = tetrisCurrentPiece.shape;
+                const rotatedShape = Array(originalShape[0].length).fill(0).map(() => Array(originalShape.length).fill(0));
+
+                if (direction === 1) {
+                    for (let r = 0; r < originalShape.length; r++) {
+                        for (let c = 0; c < originalShape[r].length; c++) {
+                            rotatedShape[c][originalShape.length - 1 - r] = originalShape[r][c];
+                        }
+                    }
+                } else {
+                    for (let r = 0; r < originalShape.length; r++) {
+                        for (let c = 0; c < originalShape[r].length; c++) {
+                            rotatedShape[originalShape[r].length - 1 - c][r] = originalShape[r][c];
+                        }
+                    }
+                }
+
+                const originalX = tetrisCurrentPiece.x;
+                const originalY = tetrisCurrentPiece.y;
+                tetrisCurrentPiece.shape = rotatedShape;
+
+                const kicks = [0, -1, 1, -2, 2];
+                for (let i = 0; i < kicks.length; i++) {
+                    tetrisCurrentPiece.x = originalX + kicks[i];
+                    if (!tetrisCheckCollision(tetrisCurrentPiece, 0, 0)) {
+                        tetrisDrawGame();
+                        return;
+                    }
+                }
+
+                tetrisCurrentPiece.shape = originalShape;
+                tetrisCurrentPiece.x = originalX;
+                tetrisCurrentPiece.y = originalY;
+            }
+
+            function tetrisSoftDrop() {
+                tetrisMovePiece(0, 1);
+            }
+
+            function tetrisHardDrop() {
+                while (tetrisMovePiece(0, 1)) {}
                 tetrisLockPiece();
             }
-            tetrisDrawGame();
-        }
 
-        function tetrisDrawGame() {
-            tetrisCtx.clearRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
-            tetrisCtx.fillStyle = '#000'; 
-            tetrisCtx.fillRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
-            tetrisDrawBoard();
-            tetrisDrawPiece(tetrisCtx, tetrisCurrentPiece);
-        }
+            function tetrisLockPiece() {
+                tetrisMergePiece();
+                tetrisClearLines();
+                tetrisCurrentPiece = tetrisNextPiece;
+                tetrisNextPiece = tetrisGenerateRandomPiece();
+                tetrisDrawNextPiece();
 
-        function iniciarTetrisGame() {
-            tetrisCreateBoard();
-            tetrisScore = 0;
-            tetrisLevel = 1;
-            tetrisDropInterval = 1000;
-            isTetrisGameOver = false;
-            tetrisScoreDisplay.textContent = tetrisScore;
-            tetrisLevelDisplay.textContent = tetrisLevel;
-            tetrisGameOverText.style.display = 'none';
-            tetrisCurrentPiece = tetrisGenerateRandomPiece();
-            tetrisNextPiece = tetrisGenerateRandomPiece();
-            tetrisDrawNextPiece();
-            clearInterval(tetrisGameLoop);
-            tetrisGameLoop = setInterval(tetrisMainLoop, tetrisDropInterval);
-            tetrisDrawGame();
-        }
-
-        document.addEventListener('keydown', e => {
-            if (currentGame !== 'tetris' || isTetrisGameOver) return;
-
-            switch (e.key) {
-                case 'ArrowLeft':
-                case 'a':
-                    tetrisMovePiece(-1, 0);
-                    break;
-                case 'ArrowRight':
-                case 'd':
-                    tetrisMovePiece(1, 0);
-                    break;
-                case 'ArrowDown':
-                case 's':
-                    tetrisSoftDrop();
-                    break;
-                case 'ArrowUp':
-                case 'w':
-                    tetrisRotatePiece(1); 
-                    break;
-                case ' ': 
-                    e.preventDefault(); 
-                    tetrisHardDrop();
-                    break;
-                case 'z': 
-                    tetrisRotatePiece(-1);
-                    break;
-                case 'r': 
-                    if(isTetrisGameOver) iniciarTetrisGame();
-                    break;
+                if (tetrisCheckCollision(tetrisCurrentPiece, 0, 0)) {
+                    isTetrisGameOver = true;
+                    clearInterval(tetrisGameLoop);
+                    tetrisGameOverText.style.display = 'block';
+                    tetrisRestartBtn.style.display = 'block';
+                    checkAndUpdateTetrisPersonalBest(); // Guardar el puntaje al terminar
+                    tetrisCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    tetrisCtx.fillRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+                }
+                tetrisDrawGame();
             }
+
+            function tetrisMainLoop() {
+                if (isTetrisGameOver) return;
+                if (!tetrisMovePiece(0, 1)) {
+                    tetrisLockPiece();
+                }
+                tetrisDrawGame();
+            }
+
+            function tetrisDrawGame() {
+                tetrisBackgroundCtx.clearRect(0, 0, tetrisBackgroundCanvas.width, tetrisBackgroundCanvas.height);
+                tetrisDrawShadowPiece();
+                tetrisCtx.clearRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+                tetrisDrawBoard();
+                tetrisDrawPiece(tetrisCtx, tetrisCurrentPiece);
+            }
+
+            function iniciarTetrisGame() {
+                document.getElementById('tetris-instructions').style.display = 'none';
+                tetrisCreateBoard();
+                tetrisScore = 0;
+                tetrisLevel = 1;
+                tetrisDropInterval = 1000;
+                isTetrisGameOver = false;
+                tetrisScoreDisplay.textContent = tetrisScore;
+                tetrisLevelDisplay.textContent = tetrisLevel;
+                tetrisGameOverText.style.display = 'none';
+                tetrisRestartBtn.style.display = 'none';
+                updateTetrisPersonalBest();
+                tetrisCurrentPiece = tetrisGenerateRandomPiece();
+                tetrisNextPiece = tetrisGenerateRandomPiece();
+                tetrisDrawNextPiece();
+                clearInterval(tetrisGameLoop);
+                tetrisGameLoop = setInterval(tetrisMainLoop, tetrisDropInterval);
+                drawTetrisBackground(); // Dibuja el fondo de Tetris interno
+                drawGlobalTetrisBackground(); // Dibuja el fondo de Tetris externo
+                tetrisDrawGame();
+            }
+            document.querySelector('#tetris-instructions .start-game-btn').addEventListener('click', iniciarTetrisGame);
+            tetrisRestartBtn.addEventListener('click', iniciarTetrisGame);
+
+            document.addEventListener('keydown', e => {
+                if (currentGame !== 'tetris' || isTetrisGameOver) return;
+
+                switch (e.key) {
+                    case 'ArrowLeft':
+                    case 'a':
+                        tetrisMovePiece(-1, 0);
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                        tetrisMovePiece(1, 0);
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                        tetrisSoftDrop();
+                        break;
+                    case 'ArrowUp':
+                    case 'w':
+                        tetrisRotatePiece(1);
+                        break;
+                    case ' ':
+                        e.preventDefault();
+                        tetrisHardDrop();
+                        break;
+                    case 'z':
+                        tetrisRotatePiece(-1);
+                        break;
+                    case 'r':
+                        if (isTetrisGameOver) iniciarTetrisGame();
+                        break;
+                }
+            });
+
+            showView('planner');
         });
-        
-        showView('planner');
-    });
     </script>
 </body>
 </html>
